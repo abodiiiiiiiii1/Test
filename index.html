@@ -971,23 +971,14 @@ document.getElementById('topbar-time').textContent =
   new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 // ─── Login ───────────────────────────────────────────────────────────────────
-const DEMO_STORES = [
-  { id: 'store-001', name: 'Gravity — Mayfair', location: 'London, UK' },
-  { id: 'store-002', name: 'Gravity — 5th Avenue', location: 'New York, USA' },
-  { id: 'store-003', name: 'Gravity — Ginza', location: 'Tokyo, JP' }
-];
-const DEMO_STAFF = {
-  '1234': { id: 'staff-001', name: 'Amélie Rousseau', pin: '1234', role: 'Manager' },
-  '5678': { id: 'staff-002', name: 'James Hartley', pin: '5678', role: 'Associate' },
-  '9012': { id: 'staff-003', name: 'Yuki Mori', pin: '9012', role: 'Associate' }
-};
-
 async function loadStores() {
   const stores = await api('stores');
   const sel = document.getElementById('store-select');
-  const list = (stores && stores.length) ? stores : DEMO_STORES;
-  sel.innerHTML = list.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  if (!stores) { products = getDemoProducts(); customers = getDemoCustomers(); transactions = getDemoTransactions(); recipes = getDemoRecipes(); }
+  if (stores && stores.length) {
+    sel.innerHTML = stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  } else {
+    sel.innerHTML = '<option value="">No stores found — check server</option>';
+  }
 }
 
 function numpadPress(d) { if (pinBuffer.length < 4) { pinBuffer += d; updatePinDots(); } }
@@ -1002,8 +993,8 @@ async function numpadEnter() {
   const pin = pinBuffer; pinBuffer = ''; updatePinDots();
   document.getElementById('login-error').textContent = '';
   let staff = await api(`staff/${pin}`);
-  if (!staff || staff.error) staff = DEMO_STAFF[pin] || null;
-  if (!staff) { document.getElementById('login-error').textContent = 'Invalid PIN. Demo: 1234 · 5678 · 9012'; return; }
+  if (!staff || staff.error) staff = null;
+  if (!staff) { document.getElementById('login-error').textContent = 'Invalid PIN'; return; }
   const storeId = document.getElementById('store-select').value;
   const stores = await api('stores');
   currentStore = (stores && stores.find(s => s.id === storeId)) || { id: storeId, name: document.getElementById('store-select').selectedOptions[0]?.text || 'Demo Store' };
@@ -1252,7 +1243,7 @@ function applyStockAdjust() {
 async function loadRecipes() {
   const data = await api('recipes');
   if (data) recipes = data;
-  else recipes = getDemoRecipes();
+  else recipes = [];
   renderRecipeList();
 }
 
@@ -1962,30 +1953,9 @@ async function resetDatabase() {
   }
   btn.textContent = 'Resetting…'; btn.disabled = true; btn.dataset.confirm = '';
 
-  const SEED_PRODUCTS = [
-    { id: 'p001', sku: 'GRV-001', name: 'Obsidian Tote',       category: 'Bags',        price: 2800, cost: 820,  stock: 12, image: '🖤' },
-    { id: 'p002', sku: 'GRV-002', name: 'Silk Scarf Noir',     category: 'Accessories', price: 650,  cost: 120,  stock: 34, image: '🪬' },
-    { id: 'p003', sku: 'GRV-003', name: 'Cashmere Overcoat',   category: 'Outerwear',   price: 4200, cost: 1400, stock: 6,  image: '🧥' },
-    { id: 'p004', sku: 'GRV-004', name: 'Velvet Evening Bag',  category: 'Bags',        price: 1950, cost: 560,  stock: 9,  image: '👜' },
-    { id: 'p005', sku: 'GRV-005', name: 'Gold Cuff Bracelet',  category: 'Jewellery',   price: 3400, cost: 980,  stock: 5,  image: '⭕' },
-    { id: 'p006', sku: 'GRV-006', name: 'Leather Gloves',      category: 'Accessories', price: 480,  cost: 130,  stock: 20, image: '🧤' },
-    { id: 'p007', sku: 'GRV-007', name: 'Suede Loafers',       category: 'Footwear',    price: 1100, cost: 340,  stock: 14, image: '👞' },
-    { id: 'p008', sku: 'GRV-008', name: 'Merino Wrap',         category: 'Accessories', price: 890,  cost: 210,  stock: 18, image: '🧣' },
-    { id: 'p009', sku: 'GRV-009', name: 'Crystal Hairpin Set', category: 'Accessories', price: 320,  cost: 80,   stock: 40, image: '✨' },
-    { id: 'p010', sku: 'GRV-010', name: 'Lambskin Wallet',     category: 'Accessories', price: 740,  cost: 195,  stock: 22, image: '💳' },
-    { id: 'p011', sku: 'GRV-011', name: 'Satin Heels',         category: 'Footwear',    price: 1350, cost: 420,  stock: 8,  image: '👠' },
-    { id: 'p012', sku: 'GRV-012', name: 'Pearl Earrings',      category: 'Jewellery',   price: 2100, cost: 610,  stock: 11, image: '🔘' }
-  ];
-  const SEED_CUSTOMERS = [
-    { id: 'c001', name: 'Isabelle Fontaine', email: 'i.fontaine@email.com', phone: '+44 7700 900123', tier: 'Noir',     totalSpend: 28400, visits: 14 },
-    { id: 'c002', name: 'Marcus Chen',       email: 'm.chen@email.com',     phone: '+1 212 555 0191', tier: 'Obsidian', totalSpend: 67200, visits: 31 },
-    { id: 'c003', name: 'Sophia Adeyemi',    email: 's.adeyemi@email.com',  phone: '+44 7911 223344', tier: 'Platinum', totalSpend: 12800, visits: 7  },
-    { id: 'c004', name: 'Riku Tanaka',       email: 'r.tanaka@email.com',   phone: '+81 3 1234 5678', tier: 'Noir',     totalSpend: 19600, visits: 9  }
-  ];
-
-  // Always reset local state immediately (works offline too)
-  products     = JSON.parse(JSON.stringify(SEED_PRODUCTS));
-  customers    = JSON.parse(JSON.stringify(SEED_CUSTOMERS));
+  // Reset to empty state
+  products     = [];
+  customers    = [];
   transactions = [];
   recipes      = [];
   cart         = []; selectedCustomer = null; discount = 0; tip = 0; tipPct = 0;
@@ -2024,84 +1994,7 @@ function showNotification(msg, type = 'success') {
 // ─── Formatting ───────────────────────────────────────────────────────────────
 function fmt(n) { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(n || 0); }
 
-// ─── Demo Data ────────────────────────────────────────────────────────────────
-function getDemoProducts() {
-  return [
-    { id: 'p001', sku: 'GRV-001', name: 'Obsidian Tote', category: 'Bags', price: 2800, costPrice: 1100, stock: 12, lowStock: 3, image: '🖤', description: 'Structured leather tote in obsidian black' },
-    { id: 'p002', sku: 'GRV-002', name: 'Silk Scarf Noir', category: 'Accessories', price: 650, costPrice: 200, stock: 34, lowStock: 5, image: '🪬' },
-    { id: 'p003', sku: 'GRV-003', name: 'Cashmere Overcoat', category: 'Outerwear', price: 4200, costPrice: 1600, stock: 6, lowStock: 2, image: '🧥' },
-    { id: 'p004', sku: 'GRV-004', name: 'Velvet Evening Bag', category: 'Bags', price: 1950, costPrice: 700, stock: 9, lowStock: 2, image: '👜' },
-    { id: 'p005', sku: 'GRV-005', name: 'Gold Cuff Bracelet', category: 'Jewellery', price: 3400, costPrice: 900, stock: 5, lowStock: 2, image: '⭕' },
-    { id: 'p006', sku: 'GRV-006', name: 'Leather Gloves', category: 'Accessories', price: 480, costPrice: 150, stock: 20, lowStock: 5, image: '🧤' },
-    { id: 'p007', sku: 'GRV-007', name: 'Suede Loafers', category: 'Footwear', price: 1100, costPrice: 380, stock: 14, lowStock: 3, image: '👞' },
-    { id: 'p008', sku: 'GRV-008', name: 'Merino Wrap', category: 'Accessories', price: 890, costPrice: 280, stock: 18, lowStock: 5, image: '🧣' },
-    { id: 'p009', sku: 'GRV-009', name: 'Crystal Hairpin Set', category: 'Accessories', price: 320, costPrice: 90, stock: 40, lowStock: 8, image: '✨' },
-    { id: 'p010', sku: 'GRV-010', name: 'Lambskin Wallet', category: 'Accessories', price: 740, costPrice: 240, stock: 22, lowStock: 5, image: '💳' },
-    { id: 'p011', sku: 'GRV-011', name: 'Satin Heels', category: 'Footwear', price: 1350, costPrice: 450, stock: 8, lowStock: 2, image: '👠' },
-    { id: 'p012', sku: 'GRV-012', name: 'Pearl Earrings', category: 'Jewellery', price: 2100, costPrice: 600, stock: 11, lowStock: 3, image: '🔘' }
-  ];
-}
 
-function getDemoCustomers() {
-  return [
-    { id: 'c001', name: 'Isabelle Fontaine', email: 'i.fontaine@email.com', phone: '+44 7700 123456', tier: 'Noir', totalSpend: 28400, visits: 14, loyaltyPoints: 2840, notes: 'Prefers bags & accessories. Anniversary in March.' },
-    { id: 'c002', name: 'Marcus Chen', email: 'm.chen@email.com', phone: '+44 7700 654321', tier: 'Obsidian', totalSpend: 67200, visits: 31, loyaltyPoints: 6720, notes: 'Corporate buyer. Interested in outerwear.' },
-    { id: 'c003', name: 'Sofia Reyes', email: 's.reyes@email.com', phone: '+1 310 555 0192', tier: 'Platinum', totalSpend: 142000, visits: 52, loyaltyPoints: 14200, notes: 'VIP — always call ahead for new arrivals.' }
-  ];
-}
-
-function getDemoTransactions() {
-  const now = new Date();
-  const txns = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now); d.setDate(d.getDate() - i);
-    const n = Math.floor(Math.random() * 3) + 1;
-    for (let j = 0; j < n; j++) {
-      const p = getDemoProducts()[Math.floor(Math.random() * 6)];
-      const total = p.price * (Math.random() > 0.5 ? 1 : 2);
-      txns.push({
-        id: `TXN-${d.getDate()}${j+1}`,
-        storeName: 'Gravity — Mayfair',
-        staffName: 'Amélie Rousseau',
-        customerName: Math.random() > 0.4 ? getDemoCustomers()[Math.floor(Math.random()*3)].name : null,
-        items: [{ productId: p.id, name: p.name, qty: 1, price: p.price }],
-        subtotal: total / 1.2, tax: total / 6, total,
-        discountPct: 0, discountAmt: 0,
-        paymentMethod: ['card','cash','contactless','amex'][Math.floor(Math.random()*4)],
-        tipAmt: Math.random() > 0.6 ? Math.round(total * 0.1 * 10) / 10 : 0,
-        timestamp: d.toISOString()
-      });
-    }
-  }
-  return txns;
-}
-
-function getDemoRecipes() {
-  return [
-    {
-      id: 'r001', name: 'Classic Gift Bundle', category: 'Bundle',
-      description: 'Curated gift bundle for new guests and seasonal gifting.',
-      ingredients: [
-        { productId: 'p002', qty: 1, unit: 'pc' },
-        { productId: 'p009', qty: 1, unit: 'set' },
-        { productId: 'p010', qty: 1, unit: 'pc' }
-      ],
-      price: 1600,
-      instructions: 'Wrap in black tissue paper. Add gold ribbon. Place in branded gift box. Attach handwritten card.'
-    },
-    {
-      id: 'r002', name: 'Executive Travel Set', category: 'Bundle',
-      description: 'Premium travel essentials set for corporate clients.',
-      ingredients: [
-        { productId: 'p001', qty: 1, unit: 'pc' },
-        { productId: 'p006', qty: 1, unit: 'pair' },
-        { productId: 'p010', qty: 1, unit: 'pc' }
-      ],
-      price: 3800,
-      instructions: 'Assemble in leather portfolio box. Monogram initials on tote if requested (2–3 day lead time).'
-    }
-  ];
-}
 
 // ─── Shift Clock ──────────────────────────────────────────────────────────────
 function startShift() {
