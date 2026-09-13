@@ -394,6 +394,298 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 
 /* ── Loyalty Points column ── */
 .pts-cell { font-family: var(--font-serif); font-size: 15px; color: var(--gold); }
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE — TABLET  (≤ 900px)
+   ════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+  /* Topbar: hide low-priority items */
+  .topbar-store   { display: none; }
+  .topbar-staff   { display: none; }
+  .topbar-time    { font-size: 14px; }
+  .server-status  { display: none; }
+  .shift-timer    { display: none !important; }
+
+  /* Side-nav collapses to icon-only (already narrow, just tighten) */
+  .sidenav { width: 54px; }
+  .nav-btn { width: 40px; height: 40px; font-size: 0; } /* hide text labels */
+  .nav-btn svg { width: 20px; height: 20px; }
+
+  /* Sale view: stack product + cart vertically */
+  #view-sale { flex-direction: column; }
+
+  .product-panel { flex: 1; min-height: 0; }
+
+  /* Cart becomes a bottom sheet */
+  .cart-panel {
+    width: 100%;
+    flex-shrink: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 42vh;
+    display: flex;
+  }
+
+  /* Compact cart header on tablet */
+  .cart-top    { padding: 10px 14px; }
+  .cart-title  { font-size: 15px; }
+
+  /* Product grid: fewer columns */
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  /* Inventory grid */
+  .inv-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    padding: 16px 18px;
+  }
+
+  /* Analytics / dashboard grid */
+  .analytics-grid   { grid-template-columns: repeat(2, 1fr); padding: 16px 18px 0; }
+  .dashboard-grid   { grid-template-columns: repeat(2, 1fr); padding: 16px 18px; }
+  .dashboard-bottom { grid-template-columns: 1fr; padding: 0 18px 18px; }
+
+  /* Modals fill more width */
+  .modal      { width: min(94vw, 480px); padding: 24px 20px; }
+  .modal.wide { width: min(96vw, 620px); }
+
+  /* View headers tighten */
+  .view-header { padding: 14px 18px 12px; gap: 10px; }
+  .view-title  { font-size: 22px; }
+  .table-wrap  { padding: 14px 18px; }
+
+  /* Recipes: narrower sidebar */
+  .recipes-list { width: 220px; }
+
+  /* Login */
+  .login-card { width: min(90vw, 380px); padding: 32px 28px; }
+}
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE  (≤ 600px)
+   ════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* ── Body / App shell ── */
+  body { font-size: 14px; }
+
+  /* ── Topbar ── */
+  .topbar { height: 48px; padding: 0 12px; gap: 10px; }
+  .topbar-logo { font-size: 20px; letter-spacing: 0.14em; }
+  #btn-eod { display: none !important; }
+  .btn-icon { padding: 5px 8px; font-size: 11px; }
+
+  /* ── Side nav → hidden; replaced by bottom bar ── */
+  .sidenav { display: none; }
+
+  /* ── Bottom navigation bar ── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 200;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    height: 60px;
+    align-items: stretch;
+  }
+  .mobile-bottom-nav .nav-btn {
+    flex: 1;
+    height: 60px;
+    width: auto;
+    border-radius: 0;
+    border: none;
+    font-size: 9px;
+    gap: 2px;
+    padding: 6px 2px 8px;
+  }
+  .mobile-bottom-nav .nav-btn svg { width: 20px; height: 20px; }
+
+  /* push app content up so bottom nav doesn't cover it */
+  #app { padding-bottom: 60px; }
+
+  /* ── SALE VIEW: full-screen product → cart toggle ── */
+  #view-sale { flex-direction: column; position: relative; }
+
+  .product-panel {
+    flex: 1;
+    min-height: 0;
+    /* full height when cart is collapsed */
+  }
+
+  /* Cart: hidden by default on mobile, slides up as sheet */
+  .cart-panel {
+    position: fixed;
+    bottom: 60px; /* above bottom nav */
+    left: 0; right: 0;
+    width: 100%;
+    max-height: 75vh;
+    border-left: none;
+    border-top: 1px solid var(--border-hi);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    z-index: 100;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(.22,.68,0,1.15);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .cart-panel.mobile-open {
+    transform: translateY(0);
+  }
+
+  /* Cart toggle FAB */
+  .cart-fab {
+    display: flex;
+    position: fixed;
+    bottom: 68px;
+    right: 16px;
+    z-index: 150;
+    background: var(--gold);
+    color: var(--black);
+    border: none;
+    border-radius: 100px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(200,127,76,0.35);
+    transition: background 0.15s, transform 0.15s;
+  }
+  .cart-fab:active { transform: scale(0.96); }
+  .cart-fab .fab-count {
+    background: var(--black);
+    color: var(--gold);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+  }
+  /* hide FAB when cart is open */
+  .cart-panel.mobile-open ~ .cart-fab { display: none; }
+
+  /* Cart overlay backdrop */
+  .cart-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    bottom: 60px;
+    z-index: 90;
+    background: rgba(18,13,10,0.6);
+    backdrop-filter: blur(2px);
+  }
+  .cart-overlay.visible { display: block; }
+
+  /* Cart drag handle */
+  .cart-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cart-handle-bar {
+    width: 36px; height: 4px;
+    background: var(--border-hi);
+    border-radius: 2px;
+  }
+
+  /* Product grid: 2 columns on phone */
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .product-card { padding: 10px 10px; gap: 4px; }
+  .product-emoji { font-size: 22px; }
+  .product-name  { font-size: 11px; }
+  .product-price { font-size: 16px; }
+
+  /* Panel header */
+  .panel-header { padding: 10px 12px; gap: 8px; }
+  .panel-header .btn-action { display: none; } /* hide "+ Product" in sale header on mobile */
+
+  /* Category tabs */
+  .category-tabs { padding: 8px 12px; }
+
+  /* Inventory: 2-column grid */
+  .inv-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 12px;
+    gap: 10px;
+  }
+  .inv-card-img { height: 90px; }
+
+  /* Analytics */
+  .analytics-grid   { grid-template-columns: 1fr; padding: 12px 12px 0; gap: 10px; }
+  .analytics-chart-section { padding: 0 12px 16px; margin-top: 16px; }
+  .sales-table-section { padding: 0 12px 16px; }
+
+  /* Dashboard */
+  .dashboard-grid   { grid-template-columns: repeat(2, 1fr); padding: 12px; gap: 10px; }
+  .dashboard-bottom { grid-template-columns: 1fr; padding: 0 12px 12px; }
+  .dash-card        { padding: 14px; }
+  .dash-card-value  { font-size: 28px; }
+
+  /* View header */
+  .view-header { padding: 12px 14px 10px; gap: 8px; flex-wrap: wrap; }
+  .view-title  { font-size: 20px; width: 100%; }
+  .table-wrap  { padding: 10px 12px; }
+
+  /* Customers table: hide less important columns */
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3),
+  .data-table th:nth-child(7),
+  .data-table td:nth-child(7),
+  .data-table th:nth-child(8),
+  .data-table td:nth-child(8) { display: none; }
+
+  /* Recipes: full-width list, detail pushes over */
+  .recipes-layout { flex-direction: column; }
+  .recipes-list   { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+  .recipe-detail  { padding: 16px; }
+  .recipe-title   { font-size: 24px; }
+
+  /* Modals: full-width, anchored to bottom */
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding: 24px 16px 32px;
+    margin: 0;
+  }
+  .modal.wide { width: 100%; }
+  .form-row { flex-direction: column; gap: 0; }
+
+  /* Payment amount: smaller on tiny screens */
+  .payment-amount-value { font-size: 38px; }
+
+  /* Notification */
+  .notification { bottom: 72px; right: 12px; left: 12px; max-width: none; }
+
+  /* Login */
+  .login-screen { padding: 0 20px; }
+  .login-wordmark { font-size: 48px; }
+  .login-brand { margin-bottom: 32px; }
+  .login-card { width: 100%; padding: 28px 20px; border-radius: var(--r-lg); }
+}
+
+/* Hide mobile-only elements on desktop */
+.mobile-bottom-nav { display: none; }
+.cart-fab          { display: none; }
+.cart-overlay      { display: none; }
+.cart-handle       { display: none; }
 </style>
 </head>
 <body>
@@ -405,28 +697,60 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div class="login-sub">Point of Sale System</div>
   </div>
   <div class="login-card">
-    <label class="login-label">Select Store</label>
-    <select class="store-select" id="store-select"><option value="">Loading…</option></select>
-    <label class="pin-label">Enter PIN</label>
-    <div class="pin-dots" id="pin-dots">
-      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
-      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+
+    <!-- ── Setup step (shown on first run or when no server is saved) ── -->
+    <div id="setup-step">
+      <label class="login-label" style="color:var(--gold); letter-spacing:0.1em;">Server Setup</label>
+      <p style="font-size:11px; color:var(--white-dim); line-height:1.7; margin-bottom:14px;">
+        Enter the address of your Gravity POS server to get started.
+      </p>
+      <div class="form-field" style="margin-bottom:10px;">
+        <label class="form-label" style="font-size:10px; letter-spacing:0.1em; color:var(--gold-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Server URL</label>
+        <input class="form-input" type="url" id="setup-url-input"
+          placeholder="http://192.168.1.x:4000"
+          style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--white); padding:9px 14px; font-size:13px; font-family:var(--font-sans); outline:none; transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='var(--gold-dim)'" onblur="this.style.borderColor=''"
+          onkeydown="if(event.key==='Enter') connectServer()">
+      </div>
+      <div id="setup-status" style="font-size:11px; min-height:18px; margin-bottom:14px; color:var(--white-dim);"></div>
+      <button class="numpad-btn enter" style="width:100%; padding:13px; border-radius:var(--r-sm); font-size:13px; letter-spacing:0.06em;" onclick="connectServer()">Connect &amp; Continue</button>
+      <div style="margin-top:14px; text-align:center;">
+        <button onclick="skipSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:11px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px;">
+          Use localhost:4000 (local dev)
+        </button>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px; margin-bottom:4px;"></div>
     </div>
-    <div class="numpad">
-      <button class="numpad-btn" onclick="numpadPress('1')">1</button>
-      <button class="numpad-btn" onclick="numpadPress('2')">2</button>
-      <button class="numpad-btn" onclick="numpadPress('3')">3</button>
-      <button class="numpad-btn" onclick="numpadPress('4')">4</button>
-      <button class="numpad-btn" onclick="numpadPress('5')">5</button>
-      <button class="numpad-btn" onclick="numpadPress('6')">6</button>
-      <button class="numpad-btn" onclick="numpadPress('7')">7</button>
-      <button class="numpad-btn" onclick="numpadPress('8')">8</button>
-      <button class="numpad-btn" onclick="numpadPress('9')">9</button>
-      <button class="numpad-btn clear" onclick="numpadClear()">Clear</button>
-      <button class="numpad-btn" onclick="numpadPress('0')">0</button>
-      <button class="numpad-btn enter" onclick="numpadEnter()">Sign In</button>
+
+    <!-- ── Normal login (hidden until setup is done) ── -->
+    <div id="login-step">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <label class="login-label" style="margin-bottom:0;">Select Store</label>
+        <button onclick="showSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:10px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px; padding:0;">⚙ Change Server</button>
+      </div>
+      <select class="store-select" id="store-select"><option value="">Loading…</option></select>
+      <label class="pin-label">Enter PIN</label>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+        <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+      </div>
+      <div class="numpad">
+        <button class="numpad-btn" onclick="numpadPress('1')">1</button>
+        <button class="numpad-btn" onclick="numpadPress('2')">2</button>
+        <button class="numpad-btn" onclick="numpadPress('3')">3</button>
+        <button class="numpad-btn" onclick="numpadPress('4')">4</button>
+        <button class="numpad-btn" onclick="numpadPress('5')">5</button>
+        <button class="numpad-btn" onclick="numpadPress('6')">6</button>
+        <button class="numpad-btn" onclick="numpadPress('7')">7</button>
+        <button class="numpad-btn" onclick="numpadPress('8')">8</button>
+        <button class="numpad-btn" onclick="numpadPress('9')">9</button>
+        <button class="numpad-btn clear" onclick="numpadClear()">Clear</button>
+        <button class="numpad-btn" onclick="numpadPress('0')">0</button>
+        <button class="numpad-btn enter" onclick="numpadEnter()">Sign In</button>
+      </div>
+      <div class="login-error" id="login-error"></div>
     </div>
-    <div class="login-error" id="login-error"></div>
+
   </div>
 </div>
 
@@ -479,6 +803,38 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
       <div class="nav-spacer"></div>
     </nav>
 
+    <!-- ═══ MOBILE BOTTOM NAV ═══ -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+      <button class="nav-btn active" onclick="showView('sale')" id="mob-nav-sale" title="New Sale">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+        Sale
+      </button>
+      <button class="nav-btn" onclick="showView('inventory')" id="mob-nav-inventory" title="Inventory">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+        Stock
+      </button>
+      <button class="nav-btn" onclick="showView('customers')" id="mob-nav-customers" title="Customers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+        Guests
+      </button>
+      <button class="nav-btn" onclick="showView('analytics')" id="mob-nav-analytics" title="History">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605"/></svg>
+        History
+      </button>
+      <button class="nav-btn" onclick="showView('dashboard')" id="mob-nav-dashboard" title="Reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/></svg>
+        Reports
+      </button>
+    </nav>
+
+    <!-- ═══ CART FAB (mobile) ═══ -->
+    <button class="cart-fab" id="cart-fab" onclick="toggleMobileCart()">
+      🛒 Cart <span class="fab-count" id="fab-count">0</span>
+    </button>
+
+    <!-- ═══ CART OVERLAY (mobile backdrop) ═══ -->
+    <div class="cart-overlay" id="cart-overlay" onclick="closeMobileCart()"></div>
+
     <!-- ═══ SALE VIEW ═══ -->
     <div class="view active" id="view-sale">
       <div class="product-panel">
@@ -493,7 +849,8 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         <div class="category-tabs" id="category-tabs"></div>
         <div class="product-grid" id="product-grid"></div>
       </div>
-      <div class="cart-panel">
+      <div class="cart-panel" id="cart-panel">
+        <div class="cart-handle" onclick="closeMobileCart()"><div class="cart-handle-bar"></div></div>
         <div class="cart-top">
           <span class="cart-title">Current Sale</span>
           <span class="cart-count" id="cart-count">0</span>
@@ -970,7 +1327,54 @@ setInterval(() => {
 document.getElementById('topbar-time').textContent =
   new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-// ─── Login ───────────────────────────────────────────────────────────────────
+// ─── Login / Setup ────────────────────────────────────────────────────────────
+function showSetup() {
+  document.getElementById('setup-step').style.display = '';
+  document.getElementById('login-step').style.display = 'none';
+  const input = document.getElementById('setup-url-input');
+  input.value = SERVER_URL !== 'http://localhost:4000' ? SERVER_URL : '';
+  document.getElementById('setup-status').textContent = '';
+  setTimeout(() => input.focus(), 50);
+}
+
+function showLoginStep() {
+  document.getElementById('setup-step').style.display = 'none';
+  document.getElementById('login-step').style.display = '';
+}
+
+async function connectServer() {
+  const raw = document.getElementById('setup-url-input').value.trim();
+  const url = raw.replace(/\/+$/, '') || 'http://localhost:4000';
+  const statusEl = document.getElementById('setup-status');
+  statusEl.style.color = 'var(--white-dim)';
+  statusEl.textContent = 'Connecting…';
+  try {
+    const res = await fetch(`${url}/`, { method: 'GET', signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (data && (data.status === 'ok' || data.service)) {
+      SERVER_URL = url;
+      localStorage.setItem('gravity_server', SERVER_URL);
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = '✦ Connected — loading stores…';
+      await loadStores();
+      showLoginStep();
+    } else {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '⚠ Server responded but returned unexpected data.';
+    }
+  } catch (e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `⚠ Could not reach server at ${url}`;
+  }
+}
+
+async function skipSetup() {
+  SERVER_URL = 'http://localhost:4000';
+  localStorage.setItem('gravity_server', SERVER_URL);
+  await loadStores();
+  showLoginStep();
+}
+
 async function loadStores() {
   const stores = await api('stores');
   const sel = document.getElementById('store-select');
@@ -1009,7 +1413,9 @@ async function numpadEnter() {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (document.getElementById('login-screen').style.display !== 'none') {
+  const loginVisible = document.getElementById('login-screen').style.display !== 'none';
+  const pinStepVisible = document.getElementById('login-step').style.display !== 'none';
+  if (loginVisible && pinStepVisible) {
     if (e.key >= '0' && e.key <= '9') numpadPress(e.key);
     if (e.key === 'Enter') numpadEnter();
     if (e.key === 'Backspace') { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); }
@@ -1910,6 +2316,11 @@ function showView(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${name}`).classList.add('active');
   document.getElementById(`nav-${name}`)?.classList.add('active');
+  // sync mobile bottom nav
+  const mobBtn = document.getElementById(`mob-nav-${name}`);
+  if (mobBtn) mobBtn.classList.add('active');
+  // close mobile cart drawer when switching views
+  closeMobileCart();
   if (name === 'dashboard') loadDashboard();
   if (name === 'transactions') renderTransactionTable();
   if (name === 'customers') renderCustomerTable();
@@ -2351,8 +2762,63 @@ function printRecipe(id) {
   win.document.close();
 }
 
+// ─── Mobile responsive helpers ────────────────────────────────────────────────
+
+function isMobile() { return window.innerWidth <= 600; }
+
+function toggleMobileCart() {
+  const panel   = document.getElementById('cart-panel');
+  const overlay = document.getElementById('cart-overlay');
+  if (!panel) return;
+  if (panel.classList.contains('mobile-open')) {
+    closeMobileCart();
+  } else {
+    panel.classList.add('mobile-open');
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileCart() {
+  const panel   = document.getElementById('cart-panel');
+  const overlay = document.getElementById('cart-overlay');
+  if (!panel) return;
+  panel.classList.remove('mobile-open');
+  overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+// Keep FAB cart count in sync with main cart count badge
+const _cartCountObserver = new MutationObserver(() => {
+  const src = document.getElementById('cart-count');
+  const fab = document.getElementById('fab-count');
+  if (src && fab) fab.textContent = src.textContent;
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const cc = document.getElementById('cart-count');
+  if (cc) _cartCountObserver.observe(cc, { childList: true, characterData: true, subtree: true });
+});
+
+// Close cart on orientation change / resize to desktop
+window.addEventListener('resize', () => {
+  if (!isMobile()) closeMobileCart();
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
-loadStores();
+(async function init() {
+  const savedUrl = localStorage.getItem('gravity_server');
+  if (!savedUrl) {
+    // First run — show setup step, pre-fill with localhost as hint
+    document.getElementById('setup-url-input').placeholder = 'http://192.168.1.x:4000';
+    document.getElementById('setup-step').style.display = '';
+    document.getElementById('login-step').style.display = 'none';
+  } else {
+    // Server already configured — go straight to login
+    document.getElementById('setup-step').style.display = 'none';
+    document.getElementById('login-step').style.display = '';
+    await loadStores();
+  }
+})();
 </script>
 </body>
 </html>
