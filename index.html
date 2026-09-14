@@ -6,6 +6,7 @@
 <title>Gravity POS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <style>
 :root {
   --black:      #120D0A;
@@ -705,27 +706,46 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
   </div>
   <div class="login-card">
 
-    <!-- ── Setup step (shown on first run or when no server is saved) ── -->
+    <!-- ── P2P Setup step ── -->
     <div id="setup-step">
-      <label class="login-label" style="color:var(--gold); letter-spacing:0.1em;">Server Setup</label>
-      <p style="font-size:11px; color:var(--white-dim); line-height:1.7; margin-bottom:14px;">
-        Enter the address of your Gravity POS server to get started.
+      <label class="login-label" style="color:var(--gold); letter-spacing:0.1em;">Network Setup</label>
+      <p style="font-size:11px; color:var(--white-dim); line-height:1.7; margin-bottom:16px;">
+        No server needed — terminals sync directly with each other over your local network.
       </p>
-      <div class="form-field" style="margin-bottom:10px;">
-        <label class="form-label" style="font-size:10px; letter-spacing:0.1em; color:var(--gold-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Server URL</label>
-        <input class="form-input" type="url" id="setup-url-input"
-          placeholder="http://192.168.1.x:4000"
-          style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--white); padding:9px 14px; font-size:13px; font-family:var(--font-sans); outline:none; transition:border-color 0.15s;"
-          onfocus="this.style.borderColor='var(--gold-dim)'" onblur="this.style.borderColor=''"
-          onkeydown="if(event.key==='Enter') connectServer()">
-      </div>
-      <div id="setup-status" style="font-size:11px; min-height:18px; margin-bottom:14px; color:var(--white-dim);"></div>
-      <button class="numpad-btn enter" style="width:100%; padding:13px; border-radius:var(--r-sm); font-size:13px; letter-spacing:0.06em;" onclick="connectServer()">Connect &amp; Continue</button>
-      <div style="margin-top:14px; text-align:center;">
-        <button onclick="skipSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:11px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px;">
-          Use localhost:4000 (local dev)
+
+      <!-- Mode picker -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+        <button id="btn-mode-host" onclick="selectP2PMode('host')"
+          style="background:var(--gold-glow); border:1px solid var(--gold); border-radius:var(--r-sm); color:var(--gold); padding:12px 8px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; font-family:var(--font-sans); transition:all 0.15s;">
+          ◈ Host<br><span style="font-size:10px; color:var(--gold-dim); text-transform:none; letter-spacing:0;">This is the primary terminal</span>
+        </button>
+        <button id="btn-mode-join" onclick="selectP2PMode('join')"
+          style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--white-dim); padding:12px 8px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; font-family:var(--font-sans); transition:all 0.15s;">
+          ◉ Join<br><span style="font-size:10px; text-transform:none; letter-spacing:0;">Connect to an existing host</span>
         </button>
       </div>
+
+      <!-- Host panel -->
+      <div id="p2p-host-panel">
+        <div id="setup-status" style="font-size:12px; min-height:40px; margin-bottom:12px; color:var(--white-dim); line-height:1.7;"></div>
+        <button class="numpad-btn enter" style="width:100%; padding:13px; border-radius:var(--r-sm); font-size:13px; letter-spacing:0.06em;" onclick="startHost()">Start as Host</button>
+        <p style="font-size:10px; color:var(--white-dim); margin-top:10px; line-height:1.6;">The host stores all data locally. Other terminals join using the Host ID shown above.</p>
+      </div>
+
+      <!-- Join panel -->
+      <div id="p2p-join-panel" style="display:none;">
+        <div class="form-field" style="margin-bottom:10px;">
+          <label class="form-label" style="font-size:10px; letter-spacing:0.1em; color:var(--gold-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Host ID</label>
+          <input class="form-input" type="text" id="setup-url-input"
+            placeholder="e.g. gravity-mayfair-7f3a"
+            style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--white); padding:9px 14px; font-size:13px; font-family:var(--font-sans); outline:none; transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--gold-dim)'" onblur="this.style.borderColor=''"
+            onkeydown="if(event.key==='Enter') joinHost()">
+        </div>
+        <div id="join-status" style="font-size:11px; min-height:18px; margin-bottom:12px; color:var(--white-dim);"></div>
+        <button class="numpad-btn enter" style="width:100%; padding:13px; border-radius:var(--r-sm); font-size:13px; letter-spacing:0.06em;" onclick="joinHost()">Join Host</button>
+      </div>
+
       <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px; margin-bottom:4px;"></div>
     </div>
 
@@ -733,7 +753,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div id="login-step">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
         <label class="login-label" style="margin-bottom:0;">Select Store</label>
-        <button onclick="showSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:10px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px; padding:0;">⚙ Change Server</button>
+        <button onclick="showSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:10px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px; padding:0;">⚙ Change Network</button>
       </div>
       <select class="store-select" id="store-select"><option value="">Loading…</option></select>
       <label class="pin-label">Enter PIN</label>
@@ -1265,18 +1285,29 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
   </div>
 </div>
 
-<!-- Server Config Modal -->
+<!-- P2P Network Config Modal -->
 <div class="modal-overlay" id="modal-server">
   <div class="modal">
-    <div class="modal-title">Database Server</div>
-    <p style="font-size:12px; color:var(--white-dim); line-height:1.7; margin-bottom:16px;">Run <code style="color:var(--gold)">node server.js</code> then point all terminals here.</p>
-    <div class="form-field"><label class="form-label">Server URL</label><input class="form-input" type="text" id="server-url-input" placeholder="http://192.168.1.x:4000"></div>
-    <div class="server-config-info" id="server-info-display">—</div>
-    <div class="modal-actions">
-      <button class="btn-action" onclick="saveServerUrl()">Connect</button>
-      <button class="btn-action ghost" onclick="testConnection()">Test</button>
+    <div class="modal-title">P2P Network</div>
+    <div id="server-info-display" style="font-size:12px; color:var(--white-dim); line-height:1.9; margin-bottom:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); padding:12px 14px; font-family:var(--font-sans);">—</div>
+
+    <!-- Join another host from within the app -->
+    <div id="p2p-connect-panel" style="display:none;">
+      <div class="form-field" style="margin-bottom:10px;">
+        <label class="form-label">Connect to Host ID</label>
+        <input class="form-input" type="text" id="server-url-input" placeholder="gravity-mayfair-7f3a">
+      </div>
+      <div class="modal-actions" style="margin-bottom:0;">
+        <button class="btn-action" onclick="reconnectToHost()">Connect</button>
+        <button class="btn-action ghost" onclick="closeModal('modal-server')">Cancel</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" id="p2p-modal-actions">
+      <button class="btn-action ghost" onclick="copyHostId()">Copy Host ID</button>
       <button class="btn-action ghost" onclick="closeModal('modal-server')">Close</button>
     </div>
+
     <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
       <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--red); margin-bottom:10px;">Danger Zone</div>
       <button class="btn-action" id="btn-reset-db" onclick="resetDatabase()"
@@ -1284,7 +1315,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         ⚠ Reset Entire Database
       </button>
       <div style="font-size:11px; color:var(--white-dim); margin-top:8px; line-height:1.6;">
-        Clears all transactions, resets stock to defaults, and restores seed data. Works online and offline.
+        Clears all transactions and restores seed data on the host. Propagates to all connected peers.
       </div>
     </div>
   </div>
@@ -1296,7 +1327,6 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 'use strict';
 
 // ─── State ───────────────────────────────────────────────────────────────────
-let SERVER_URL = localStorage.getItem('gravity_server') || 'http://localhost:4000';
 let currentStore = null, currentStaff = null;
 let products = [], customers = [], transactions = [], recipes = [];
 let cart = [], selectedCustomer = null, discount = 0, tip = 0, tipPct = 0;
@@ -1307,23 +1337,411 @@ let currentTxnDetail = null, productImageBase64 = null;
 let analyticsPeriod = '7d';
 let shiftStart = null, shiftInterval = null;
 
-// ─── API ─────────────────────────────────────────────────────────────────────
-async function api(path, method = 'GET', body = null) {
+// ─── P2P Layer ───────────────────────────────────────────────────────────────
+// Architecture:
+//   HOST  — owns the db in localStorage, accepts connections, broadcasts changes
+//   PEER  — connects to host, receives full db on join, sends mutations to host
+//
+// All data writes go through p2pWrite(). On the host it applies immediately
+// and fans out to all peers. On a peer it sends a "mutation" message to the
+// host, which applies it and broadcasts the result.
+
+const SEED_DB = {
+  meta: { version: 1, lastSync: new Date().toISOString() },
+  stores: [
+    { id: 'store-001', name: 'Gravity — Mayfair',    location: 'London, UK'    },
+    { id: 'store-002', name: 'Gravity — 5th Avenue', location: 'New York, USA' },
+    { id: 'store-003', name: 'Gravity — Ginza',      location: 'Tokyo, JP'     }
+  ],
+  products: [
+    { id: 'p001', sku: 'GRV-001', name: 'Obsidian Tote',       category: 'Bags',        price: 2800, costPrice: 820,  stock: 12, image: '🖤' },
+    { id: 'p002', sku: 'GRV-002', name: 'Silk Scarf Noir',     category: 'Accessories', price: 650,  costPrice: 120,  stock: 34, image: '🪬' },
+    { id: 'p003', sku: 'GRV-003', name: 'Cashmere Overcoat',   category: 'Outerwear',   price: 4200, costPrice: 1400, stock: 6,  image: '🧥' },
+    { id: 'p004', sku: 'GRV-004', name: 'Velvet Evening Bag',  category: 'Bags',        price: 1950, costPrice: 560,  stock: 9,  image: '👜' },
+    { id: 'p005', sku: 'GRV-005', name: 'Gold Cuff Bracelet',  category: 'Jewellery',   price: 3400, costPrice: 980,  stock: 5,  image: '⭕' },
+    { id: 'p006', sku: 'GRV-006', name: 'Leather Gloves',      category: 'Accessories', price: 480,  costPrice: 130,  stock: 20, image: '🧤' },
+    { id: 'p007', sku: 'GRV-007', name: 'Suede Loafers',       category: 'Footwear',    price: 1100, costPrice: 340,  stock: 14, image: '👞' },
+    { id: 'p008', sku: 'GRV-008', name: 'Merino Wrap',         category: 'Accessories', price: 890,  costPrice: 210,  stock: 18, image: '🧣' },
+    { id: 'p009', sku: 'GRV-009', name: 'Crystal Hairpin Set', category: 'Accessories', price: 320,  costPrice: 80,   stock: 40, image: '✨' },
+    { id: 'p010', sku: 'GRV-010', name: 'Lambskin Wallet',     category: 'Accessories', price: 740,  costPrice: 195,  stock: 22, image: '💳' },
+    { id: 'p011', sku: 'GRV-011', name: 'Satin Heels',         category: 'Footwear',    price: 1350, costPrice: 420,  stock: 8,  image: '👠' },
+    { id: 'p012', sku: 'GRV-012', name: 'Pearl Earrings',      category: 'Jewellery',   price: 2100, costPrice: 610,  stock: 11, image: '🔘' }
+  ],
+  customers: [
+    { id: 'c001', name: 'Isabelle Fontaine', email: 'i.fontaine@email.com', phone: '+44 7700 900123', tier: 'Noir',     totalSpend: 28400, visits: 14, loyaltyPoints: 284 },
+    { id: 'c002', name: 'Marcus Chen',       email: 'm.chen@email.com',     phone: '+1 212 555 0191', tier: 'Obsidian', totalSpend: 67200, visits: 31, loyaltyPoints: 672 },
+    { id: 'c003', name: 'Sophia Adeyemi',    email: 's.adeyemi@email.com',  phone: '+44 7911 223344', tier: 'Platinum', totalSpend: 12800, visits: 7,  loyaltyPoints: 128 },
+    { id: 'c004', name: 'Riku Tanaka',       email: 'r.tanaka@email.com',   phone: '+81 3 1234 5678', tier: 'Noir',     totalSpend: 19600, visits: 9,  loyaltyPoints: 196 }
+  ],
+  transactions: [],
+  recipes: [],
+  staff: [
+    { id: 'staff-001', name: 'Amélie Rousseau', pin: '1234', role: 'Manager',   storeId: 'store-001' },
+    { id: 'staff-002', name: 'James Hartley',   pin: '5678', role: 'Associate', storeId: 'store-001' },
+    { id: 'staff-003', name: 'Yuki Mori',       pin: '9012', role: 'Associate', storeId: 'store-003' }
+  ]
+};
+
+let p2pMode    = null;   // 'host' | 'peer'
+let p2pPeer    = null;   // PeerJS instance
+let p2pConn    = null;   // peer's connection to host (peer mode only)
+let p2pPeers   = {};     // host's map of peerId → DataConnection
+let localDb    = null;   // the live db object (host only)
+let p2pHostId  = null;   // the host's PeerJS id
+
+// ── DB helpers (host only) ───────────────────────────────────────────────────
+function dbLoad() {
   try {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`${SERVER_URL}/${path}`, opts);
-    setOnline(true);
-    return await res.json();
-  } catch {
-    setOnline(false);
-    return null;
+    const raw = localStorage.getItem('gravity_p2p_db');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function dbSave(db) {
+  db.meta.lastSync = new Date().toISOString();
+  localStorage.setItem('gravity_p2p_db', JSON.stringify(db));
+}
+
+// Apply a mutation to localDb and return the updated collection
+function applyMutation(mut) {
+  const { resource, method, id, body } = mut;
+  const col = localDb[resource];
+  if (!col) return null;
+
+  if (method === 'POST') {
+    const newId = `${resource[0]}${Date.now()}`;
+    const item  = { id: newId, ...body };
+    // Side-effects for transactions
+    if (resource === 'transactions') {
+      item.id        = `txn-${Date.now()}`;
+      item.timestamp = item.timestamp || new Date().toISOString();
+      (item.items || []).forEach(i => {
+        const p = localDb.products.find(x => x.id === i.productId);
+        if (p) p.stock = Math.max(0, p.stock - i.qty);
+      });
+      if (item.customerId) {
+        const c = localDb.customers.find(x => x.id === item.customerId);
+        if (c) {
+          c.totalSpend = (c.totalSpend || 0) + (item.total || 0);
+          c.visits     = (c.visits     || 0) + 1;
+          c.loyaltyPoints = (c.loyaltyPoints || 0) + Math.floor((item.total || 0) / 10);
+          if (c.totalSpend > 50000)      c.tier = 'Obsidian';
+          else if (c.totalSpend > 20000) c.tier = 'Noir';
+        }
+      }
+    }
+    col.push(item);
+    dbSave(localDb);
+    return item;
   }
+  if (method === 'PUT') {
+    const idx = col.findIndex(x => x.id === id);
+    if (idx === -1) return null;
+    col[idx] = { ...col[idx], ...body };
+    dbSave(localDb);
+    return col[idx];
+  }
+  if (method === 'DELETE') {
+    const before = col.length;
+    localDb[resource] = col.filter(x => x.id !== id);
+    dbSave(localDb);
+    return before !== localDb[resource].length ? { deleted: id } : null;
+  }
+  return null;
+}
+
+// Broadcast the full db to every connected peer
+function broadcastDb() {
+  const msg = { type: 'db', db: localDb };
+  Object.values(p2pPeers).forEach(conn => {
+    try { conn.send(msg); } catch {}
+  });
+}
+
+// ── API shim — all app code calls api() as before ───────────────────────────
+function api(path, method = 'GET', body = null) {
+  return new Promise((resolve) => {
+    const parts    = path.replace(/\/+$/, '').split('/');
+    const resource = parts[0];   // products | customers | transactions | staff | stores | recipes | dashboard
+    const id       = parts[1];
+
+    // ── HOST: apply directly ──
+    if (p2pMode === 'host') {
+      if (method === 'GET') {
+        if (resource === 'stores')   { resolve(localDb.stores);   return; }
+        if (resource === 'recipes')  { resolve(localDb.recipes || []); return; }
+        if (resource === 'products') { resolve(localDb.products); return; }
+        if (resource === 'customers') {
+          const q = null; // search via JS elsewhere
+          resolve(localDb.customers); return;
+        }
+        if (resource === 'transactions') { resolve(localDb.transactions); return; }
+        if (resource === 'staff' && id) {
+          const m = localDb.staff.find(s => s.pin === id);
+          resolve(m || { error: 'Invalid PIN' }); return;
+        }
+        if (resource === 'dashboard') {
+          const today    = new Date().toDateString();
+          const weekAgo  = new Date(Date.now() - 7 * 86400000);
+          const todayTxns = localDb.transactions.filter(t => new Date(t.timestamp).toDateString() === today);
+          const weekTxns  = localDb.transactions.filter(t => new Date(t.timestamp) >= weekAgo);
+          resolve({
+            todaySales:        todayTxns.reduce((s, t) => s + (t.total || 0), 0),
+            todayTransactions: todayTxns.length,
+            weekSales:         weekTxns.reduce((s, t) => s + (t.total || 0), 0),
+            totalCustomers:    localDb.customers.length,
+            lowStock:          localDb.products.filter(p => p.stock < (p.lowStock || 5)),
+            topProducts:       []
+          });
+          return;
+        }
+        resolve(null); return;
+      }
+
+      // Mutations
+      if (resource === 'reset') {
+        localDb = JSON.parse(JSON.stringify(SEED_DB));
+        dbSave(localDb);
+        broadcastDb();
+        resolve({ ok: true }); return;
+      }
+      const result = applyMutation({ resource, method, id, body });
+      broadcastDb();
+      setOnline(true);
+      resolve(result);
+      return;
+    }
+
+    // ── PEER: forward mutation to host via DataConnection ──
+    if (p2pMode === 'peer') {
+      if (!p2pConn || p2pConn.open === false) {
+        setOnline(false);
+        // Fall back to in-memory state for reads
+        resolve(_localRead(resource, id, body));
+        return;
+      }
+
+      if (method === 'GET') {
+        // Reads are served from local in-memory state (kept in sync by broadcast)
+        resolve(_localRead(resource, id, body));
+        return;
+      }
+
+      if (resource === 'reset') {
+        p2pConn.send({ type: 'mutation', resource: 'reset', method: 'POST', body: {} });
+        resolve({ ok: true }); return;
+      }
+
+      // Send mutation to host; it will broadcast an updated db back
+      const reqId = `req-${Date.now()}`;
+      p2pConn.send({ type: 'mutation', resource, method, id, body, reqId });
+      // Optimistically resolve — the broadcast will update UI
+      resolve(body ? { id: `tmp-${Date.now()}`, ...body } : { ok: true });
+      return;
+    }
+
+    resolve(null);
+  });
+}
+
+// Peer-side read from in-memory arrays
+function _localRead(resource, id) {
+  if (resource === 'stores')       return SEED_DB.stores;
+  if (resource === 'products')     return products;
+  if (resource === 'customers')    return customers;
+  if (resource === 'transactions') return transactions;
+  if (resource === 'recipes')      return recipes;
+  if (resource === 'staff' && id)  {
+    const m = (localStaff || SEED_DB.staff).find(s => s.pin === id);
+    return m || { error: 'Invalid PIN' };
+  }
+  if (resource === 'dashboard') {
+    const today = new Date().toDateString();
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+    const todayTxns = transactions.filter(t => new Date(t.timestamp).toDateString() === today);
+    const weekTxns  = transactions.filter(t => new Date(t.timestamp) >= weekAgo);
+    return {
+      todaySales: todayTxns.reduce((s, t) => s + (t.total || 0), 0),
+      todayTransactions: todayTxns.length,
+      weekSales:  weekTxns.reduce((s, t) => s + (t.total || 0), 0),
+      totalCustomers: customers.length,
+      lowStock: products.filter(p => p.stock < (p.lowStock || 5)),
+      topProducts: []
+    };
+  }
+  return null;
+}
+
+let localStaff = null; // cached from db broadcast
+
+// Apply a full db broadcast from host into local state arrays
+function applyDbBroadcast(db) {
+  products     = db.products     || [];
+  customers    = db.customers    || [];
+  transactions = db.transactions || [];
+  recipes      = db.recipes      || [];
+  localStaff   = db.staff        || [];
+  setOnline(true);
+  // Refresh whichever view is active
+  renderCategories(); renderProductGrid(products); renderInventoryGrid();
+  renderCustomerTable(); renderTransactionTable(); updateLowStockBadge();
 }
 
 function setOnline(online) {
   document.getElementById('status-dot').className = 'status-dot' + (online ? '' : ' offline');
   document.getElementById('status-text').textContent = online ? 'Connected' : 'Offline';
+}
+
+// ── P2P setup helpers ────────────────────────────────────────────────────────
+function p2pStatusEl() { return document.getElementById('setup-status'); }
+
+function selectP2PMode(mode) {
+  p2pMode = mode;
+  const hostBtn = document.getElementById('btn-mode-host');
+  const joinBtn = document.getElementById('btn-mode-join');
+  const hostPanel = document.getElementById('p2p-host-panel');
+  const joinPanel = document.getElementById('p2p-join-panel');
+  if (mode === 'host') {
+    hostBtn.style.background = 'var(--gold-glow)'; hostBtn.style.borderColor = 'var(--gold)'; hostBtn.style.color = 'var(--gold)';
+    joinBtn.style.background = 'var(--surface)';   joinBtn.style.borderColor = 'var(--border)'; joinBtn.style.color = 'var(--white-dim)';
+    hostPanel.style.display = ''; joinPanel.style.display = 'none';
+    p2pStatusEl().textContent = 'Click "Start as Host" to create a session.';
+  } else {
+    joinBtn.style.background = 'var(--gold-glow)'; joinBtn.style.borderColor = 'var(--gold)'; joinBtn.style.color = 'var(--gold)';
+    hostBtn.style.background = 'var(--surface)';   hostBtn.style.borderColor = 'var(--border)'; hostBtn.style.color = 'var(--white-dim)';
+    hostPanel.style.display = 'none'; joinPanel.style.display = '';
+    const saved = localStorage.getItem('gravity_p2p_host');
+    if (saved) document.getElementById('setup-url-input').value = saved;
+    setTimeout(() => document.getElementById('setup-url-input').focus(), 50);
+  }
+}
+
+function makePeer(id) {
+  return new Peer(id, { debug: 0 });
+}
+
+function startHost() {
+  const statusEl = p2pStatusEl();
+  statusEl.style.color = 'var(--white-dim)';
+  statusEl.textContent = 'Starting host…';
+
+  // Load or seed the local database
+  localDb = dbLoad();
+  if (!localDb) {
+    localDb = JSON.parse(JSON.stringify(SEED_DB));
+    dbSave(localDb);
+  }
+
+  // Derive a stable host ID from localStorage or generate one
+  let hostId = localStorage.getItem('gravity_p2p_id');
+  if (!hostId) {
+    hostId = 'gravity-' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('gravity_p2p_id', hostId);
+  }
+  p2pHostId = hostId;
+
+  p2pPeer = makePeer(hostId);
+
+  p2pPeer.on('open', (id) => {
+    p2pHostId = id;
+    localStorage.setItem('gravity_p2p_id', id);
+    statusEl.style.color = 'var(--green)';
+    statusEl.innerHTML = `✦ Host ready<br><span style="font-size:13px; color:var(--white); letter-spacing:0.06em; font-family:var(--font-serif);">${id}</span><br><span style="font-size:10px;">Share this ID with other terminals to connect.</span>`;
+    // Ready to go — show login
+    populateStores(localDb.stores);
+    setTimeout(() => showLoginStep(), 1200);
+  });
+
+  p2pPeer.on('connection', (conn) => {
+    p2pPeers[conn.peer] = conn;
+    setOnline(true);
+    showNotification(`Terminal ${conn.peer.slice(-4)} connected`);
+    conn.on('open', () => {
+      // Send full db to new peer
+      conn.send({ type: 'db', db: localDb });
+    });
+    conn.on('data', (msg) => {
+      if (msg.type === 'mutation') {
+        if (msg.resource === 'reset') {
+          localDb = JSON.parse(JSON.stringify(SEED_DB));
+          dbSave(localDb);
+        } else {
+          applyMutation(msg);
+        }
+        broadcastDb();
+        // Also update own UI
+        applyDbBroadcast(localDb);
+      }
+    });
+    conn.on('close', () => {
+      delete p2pPeers[conn.peer];
+      showNotification(`Terminal disconnected`, 'error');
+    });
+    conn.on('error', () => delete p2pPeers[conn.peer]);
+  });
+
+  p2pPeer.on('error', (err) => {
+    // ID taken — generate new one and retry
+    if (err.type === 'unavailable-id') {
+      localStorage.removeItem('gravity_p2p_id');
+      const newId = 'gravity-' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('gravity_p2p_id', newId);
+      p2pPeer.destroy();
+      startHost();
+    } else {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = `⚠ ${err.message || err.type}`;
+    }
+  });
+}
+
+function joinHost() {
+  const hostId  = (document.getElementById('setup-url-input')?.value || '').trim();
+  const statusEl = document.getElementById('join-status');
+  if (!hostId) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Enter a Host ID'; return; }
+  statusEl.style.color = 'var(--white-dim)';
+  statusEl.textContent = 'Connecting…';
+
+  localStorage.setItem('gravity_p2p_host', hostId);
+  p2pMode = 'peer';
+  p2pPeer = makePeer(); // auto-assigned id
+
+  p2pPeer.on('open', () => {
+    p2pConn = p2pPeer.connect(hostId, { reliable: true });
+    p2pConn.on('open', () => {
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = '✦ Connected to host!';
+      setOnline(true);
+    });
+    p2pConn.on('data', (msg) => {
+      if (msg.type === 'db') {
+        applyDbBroadcast(msg.db);
+        localStaff = msg.db.staff || [];
+        populateStores(msg.db.stores || SEED_DB.stores);
+        // If still on setup screen, advance to login
+        if (document.getElementById('setup-step').style.display !== 'none') {
+          showLoginStep();
+        }
+      }
+    });
+    p2pConn.on('close', () => { setOnline(false); showNotification('Disconnected from host', 'error'); });
+    p2pConn.on('error', () => { setOnline(false); });
+  });
+
+  p2pPeer.on('error', (err) => {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `⚠ ${err.message || err.type || 'Connection failed'}`;
+  });
+}
+
+function reconnectToHost() {
+  const hostId = (document.getElementById('server-url-input')?.value || '').trim();
+  if (!hostId) { showNotification('Enter a Host ID', 'error'); return; }
+  localStorage.setItem('gravity_p2p_host', hostId);
+  if (p2pConn) { try { p2pConn.close(); } catch {} }
+  p2pConn = p2pPeer.connect(hostId, { reliable: true });
+  p2pConn.on('open', () => { setOnline(true); showNotification('Connected to host'); closeModal('modal-server'); });
+  p2pConn.on('data', (msg) => { if (msg.type === 'db') applyDbBroadcast(msg.db); });
+  p2pConn.on('close', () => setOnline(false));
 }
 
 // ─── Clock ───────────────────────────────────────────────────────────────────
@@ -1338,10 +1756,8 @@ document.getElementById('topbar-time').textContent =
 function showSetup() {
   document.getElementById('setup-step').style.display = '';
   document.getElementById('login-step').style.display = 'none';
-  const input = document.getElementById('setup-url-input');
-  input.value = SERVER_URL !== 'http://localhost:4000' ? SERVER_URL : '';
-  document.getElementById('setup-status').textContent = '';
-  setTimeout(() => input.focus(), 50);
+  // Reset mode UI
+  selectP2PMode(p2pMode || 'host');
 }
 
 function showLoginStep() {
@@ -1349,47 +1765,18 @@ function showLoginStep() {
   document.getElementById('login-step').style.display = '';
 }
 
-async function connectServer() {
-  const raw = document.getElementById('setup-url-input').value.trim();
-  const url = raw.replace(/\/+$/, '') || 'http://localhost:4000';
-  const statusEl = document.getElementById('setup-status');
-  statusEl.style.color = 'var(--white-dim)';
-  statusEl.textContent = 'Connecting…';
-  try {
-    const res = await fetch(`${url}/`, { method: 'GET', signal: AbortSignal.timeout(5000) });
-    const data = await res.json();
-    if (data && (data.status === 'ok' || data.service)) {
-      SERVER_URL = url;
-      localStorage.setItem('gravity_server', SERVER_URL);
-      statusEl.style.color = 'var(--green)';
-      statusEl.textContent = '✦ Connected — loading stores…';
-      await loadStores();
-      showLoginStep();
-    } else {
-      statusEl.style.color = 'var(--red)';
-      statusEl.textContent = '⚠ Server responded but returned unexpected data.';
-    }
-  } catch (e) {
-    statusEl.style.color = 'var(--red)';
-    statusEl.textContent = `⚠ Could not reach server at ${url}`;
-  }
-}
-
-async function skipSetup() {
-  SERVER_URL = 'http://localhost:4000';
-  localStorage.setItem('gravity_server', SERVER_URL);
-  await loadStores();
-  showLoginStep();
-}
-
-async function loadStores() {
-  const stores = await api('stores');
+function populateStores(stores) {
   const sel = document.getElementById('store-select');
   if (stores && stores.length) {
     sel.innerHTML = stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
   } else {
-    sel.innerHTML = '<option value="">No stores found — check server</option>';
+    sel.innerHTML = SEED_DB.stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
   }
+}
+
+async function loadStores() {
+  const stores = await api('stores');
+  populateStores(stores || SEED_DB.stores);
 }
 
 function numpadPress(d) { if (pinBuffer.length < 4) { pinBuffer += d; updatePinDots(); } }
@@ -2336,28 +2723,38 @@ function showView(name) {
   if (name === 'analytics') renderAnalytics();
 }
 
-// ─── Server Config ────────────────────────────────────────────────────────────
+// ─── P2P Network Config (in-app modal) ───────────────────────────────────────
 function openServerConfig() {
-  document.getElementById('server-url-input').value = SERVER_URL;
-  document.getElementById('server-info-display').textContent = `Current: ${SERVER_URL}\nData file: db.json`;
+  const infoEl = document.getElementById('server-info-display');
+  const actionsEl = document.getElementById('p2p-modal-actions');
+  const connectPanel = document.getElementById('p2p-connect-panel');
+
+  if (p2pMode === 'host') {
+    const peerCount = Object.keys(p2pPeers).length;
+    infoEl.innerHTML =
+      `<b style="color:var(--gold)">◈ Host</b> — this terminal owns the database<br>` +
+      `Host ID: <span style="color:var(--white); font-family:var(--font-serif); font-size:15px;">${p2pHostId || '—'}</span><br>` +
+      `Peers connected: ${peerCount}<br>` +
+      `Last sync: ${localDb?.meta?.lastSync ? new Date(localDb.meta.lastSync).toLocaleTimeString('en-GB') : '—'}`;
+    connectPanel.style.display = 'none';
+    actionsEl.style.display = '';
+  } else {
+    const hostId = localStorage.getItem('gravity_p2p_host') || '—';
+    infoEl.innerHTML =
+      `<b style="color:var(--blue)">◉ Peer</b> — connected to host<br>` +
+      `Host ID: <span style="color:var(--white); font-family:var(--font-serif); font-size:15px;">${hostId}</span><br>` +
+      `Status: ${p2pConn?.open ? '<span style="color:var(--green)">Connected ✓</span>' : '<span style="color:var(--red)">Disconnected</span>'}`;
+    if (document.getElementById('server-url-input'))
+      document.getElementById('server-url-input').value = hostId;
+    connectPanel.style.display = '';
+    actionsEl.style.display = 'none';
+  }
   openModal('modal-server');
 }
-function saveServerUrl() {
-  SERVER_URL = document.getElementById('server-url-input').value.trim();
-  localStorage.setItem('gravity_server', SERVER_URL);
-  closeModal('modal-server'); showNotification('Server updated — reconnecting…'); loadStores();
-}
-async function testConnection() {
-  const url = document.getElementById('server-url-input').value.trim();
-  try {
-    const res = await fetch(`${url}/stores`);
-    const data = await res.json();
-    document.getElementById('server-info-display').textContent = `✓ Connected\n${data.length} stores found`;
-    showNotification('Connection successful', 'success');
-  } catch {
-    document.getElementById('server-info-display').textContent = `✗ Cannot reach ${url}`;
-    showNotification('Cannot connect to server', 'error');
-  }
+
+function copyHostId() {
+  if (!p2pHostId) { showNotification('No host ID yet', 'error'); return; }
+  navigator.clipboard.writeText(p2pHostId).then(() => showNotification('Host ID copied!'));
 }
 
 async function resetDatabase() {
@@ -2379,10 +2776,8 @@ async function resetDatabase() {
   cart         = []; selectedCustomer = null; discount = 0; tip = 0; tipPct = 0;
   heldSales    = [];
 
-  // If online, also reset the server
-  try {
-    await fetch(`${SERVER_URL}/reset`, { method: 'POST' });
-  } catch { /* offline — local reset already done above */ }
+  // Reset via P2P
+  await api('reset', 'POST');
 
   // Refresh all views
   renderProducts(); renderCart();
@@ -2812,18 +3207,20 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-(async function init() {
-  const savedUrl = localStorage.getItem('gravity_server');
-  if (!savedUrl) {
-    // First run — show setup step, pre-fill with localhost as hint
-    document.getElementById('setup-url-input').placeholder = 'http://192.168.1.x:4000';
-    document.getElementById('setup-step').style.display = '';
-    document.getElementById('login-step').style.display = 'none';
+(function init() {
+  // Always start on setup screen; initialise mode UI
+  document.getElementById('setup-step').style.display = '';
+  document.getElementById('login-step').style.display = 'none';
+
+  // Default to host mode; if there's a saved host peer id, pre-select join
+  const savedHost = localStorage.getItem('gravity_p2p_host');
+  const savedOwnId = localStorage.getItem('gravity_p2p_id');
+
+  if (savedHost && !savedOwnId) {
+    // This machine previously joined as a peer
+    selectP2PMode('join');
   } else {
-    // Server already configured — go straight to login
-    document.getElementById('setup-step').style.display = 'none';
-    document.getElementById('login-step').style.display = '';
-    await loadStores();
+    selectP2PMode('host');
   }
 })();
 </script>
