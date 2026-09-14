@@ -916,7 +916,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="14.5" y2="17"/><line x1="17" y1="7" x2="17" y2="17"/></svg>
             Scan
           </button>
-          <button class="btn-action ghost" onclick="openAddProduct()" style="white-space:nowrap">+ Product</button>
+          <button class="btn-action ghost" id="btn-add-product-sale" onclick="openAddProduct()" style="white-space:nowrap">+ Product</button>
         </div>
         <div class="category-tabs" id="category-tabs"></div>
         <div class="product-grid" id="product-grid"></div>
@@ -967,7 +967,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
           <select class="form-select" id="inv-cat-filter" onchange="filterInventory()" style="width:160px;">
             <option value="">All Categories</option>
           </select>
-          <button class="btn-action" onclick="openAddProduct()">+ Add Product</button>
+          <button class="btn-action" id="btn-add-product-inv" onclick="openAddProduct()">+ Add Product</button>
         </div>
         <div class="inv-grid" id="inv-grid"></div>
       </div>
@@ -1436,6 +1436,78 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentStore = null, currentStaff = null;
+
+// ─── Permissions ────────────────────────────────────────────────────────────
+// Which views each role may open.
+const VIEW_ACCESS = {
+  sale:         ['Manager', 'Associate', 'Cashier', 'Viewer'],
+  inventory:    ['Manager', 'Associate', 'Viewer'],
+  recipes:      ['Manager', 'Associate', 'Viewer'],
+  customers:    ['Manager', 'Associate', 'Viewer'],
+  analytics:    ['Manager', 'Viewer'],
+  dashboard:    ['Manager', 'Viewer'],
+  transactions: ['Manager', 'Viewer'],
+  staff:        ['Manager']
+};
+
+// Which roles may perform a given mutating action, regardless of which
+// button/screen triggered it. Checked inside the action itself (not just
+// hidden in the UI), so it can't be bypassed by calling the function
+// directly from devtools.
+const ACTION_ACCESS = {
+  manageStaff:     ['Manager'],
+  manageProducts:  ['Manager', 'Associate'],
+  manageInventory: ['Manager', 'Associate'],
+  manageRecipes:   ['Manager', 'Associate'],
+  manageCustomers: ['Manager', 'Associate'],
+  checkout:        ['Manager', 'Associate', 'Cashier'],
+  clearData:       ['Manager']
+};
+
+function can(action) {
+  const role = currentStaff && currentStaff.role;
+  const allowed = ACTION_ACCESS[action];
+  return !!role && !!allowed && allowed.includes(role);
+}
+
+function canViewNav(name) {
+  const role = currentStaff && currentStaff.role;
+  const allowed = VIEW_ACCESS[name];
+  return !!role && !!allowed && allowed.includes(role);
+}
+
+// Denies an action and gives the user visible feedback. Always returns
+// false so callers can `if (!requirePermission(...)) return;`.
+function requirePermission(action, label) {
+  if (can(action)) return true;
+  showNotification(`Your role (${currentStaff?.role || 'unknown'}) doesn't have access to ${label || 'this action'}`, 'error');
+  return false;
+}
+
+// Hides/disables nav buttons (desktop + mobile) the current role can't
+// open, and jumps off the current view if it's no longer permitted.
+function applyRolePermissions() {
+  Object.keys(VIEW_ACCESS).forEach(name => {
+    const allowed = canViewNav(name);
+    [`nav-${name}`, `mob-nav-${name}`].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.style.display = allowed ? '' : 'none';
+    });
+  });
+  const activeView = document.querySelector('.view.active');
+  if (activeView) {
+    const name = activeView.id.replace('view-', '');
+    if (!canViewNav(name)) showView('sale');
+  }
+
+  const addProductSale = document.getElementById('btn-add-product-sale');
+  if (addProductSale) addProductSale.style.display = can('manageProducts') ? '' : 'none';
+  const addProductInv = document.getElementById('btn-add-product-inv');
+  if (addProductInv) addProductInv.style.display = can('manageProducts') ? '' : 'none';
+  const resetDbBtn = document.getElementById('btn-reset-db');
+  if (resetDbBtn) resetDbBtn.closest('div[style*="margin-top:24px"]').style.display = can('clearData') ? '' : 'none';
+}
+
 let products = [], customers = [], transactions = [], recipes = [];
 let cart = [], selectedCustomer = null, discount = 0, tip = 0, tipPct = 0;
 let selectedPaymentMethod = 'card', pinBuffer = '', heldSales = [];
@@ -1894,6 +1966,7 @@ async function createFirstStaff() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').className = 'visible';
   applyPosFilter();
+  applyRolePermissions();
   startShift();
   showNotification(`Welcome, ${name}! Add more staff in the Staff section.`);
 }
@@ -1932,6 +2005,7 @@ async function numpadEnter() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').className = 'visible';
   applyPosFilter();
+  applyRolePermissions();
   startShift();
 }
 
@@ -2046,9 +2120,9 @@ function renderInventoryGrid(list) {
         </div>
         ${p.costPrice ? `<div style="font-size:11px; color:var(--white-dim); margin-bottom:10px;">Cost: ${fmt(p.costPrice)} · Margin: ${p.price > 0 ? Math.round((p.price - p.costPrice) / p.price * 100) : 0}%</div>` : ''}
         <div class="inv-card-actions">
-          <button class="inv-btn primary" onclick="openStockAdjust('${p.id}')">Adjust Stock</button>
-          <button class="inv-btn" onclick="openEditProduct('${p.id}')">Edit</button>
-          <button class="inv-btn" onclick="deleteProduct('${p.id}')" style="color:var(--red);">Del</button>
+          ${can('manageInventory') ? `<button class="inv-btn primary" onclick="openStockAdjust('${p.id}')">Adjust Stock</button>` : ''}
+          ${can('manageProducts') ? `<button class="inv-btn" onclick="openEditProduct('${p.id}')">Edit</button>` : ''}
+          ${can('manageProducts') ? `<button class="inv-btn" onclick="deleteProduct('${p.id}')" style="color:var(--red);">Del</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -2056,6 +2130,7 @@ function renderInventoryGrid(list) {
 }
 
 function openAddProduct() {
+  if (!requirePermission('manageProducts', 'product management')) return;
   editingProductId = null; productImageBase64 = null;
   document.getElementById('product-modal-title').textContent = 'Add Product';
   ['p-name','p-sku','p-category','p-price','p-cost','p-low-stock','p-description','p-barcode-raw'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
@@ -2067,6 +2142,7 @@ function openAddProduct() {
 }
 
 function openEditProduct(id) {
+  if (!requirePermission('manageProducts', 'product management')) return;
   const p = products.find(x => x.id === id);
   if (!p) return;
   editingProductId = id; productImageBase64 = p.imageBase64 || null;
@@ -2114,6 +2190,7 @@ function checkSkuUnique() {
 
 let _savingProduct = false;
 async function saveProduct() {
+  if (!requirePermission('manageProducts', 'product management')) return;
   if (_savingProduct) return;
   _savingProduct = true;
   const saveBtn = document.querySelector('#modal-product .btn-action');
@@ -2161,6 +2238,7 @@ async function saveProduct() {
 }
 
 async function deleteProduct(id) {
+  if (!requirePermission('manageProducts', 'product management')) return;
   const p = products.find(x => x.id === id);
   if (!p || !confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
   await api(`products/${id}`, 'DELETE');
@@ -2171,6 +2249,7 @@ async function deleteProduct(id) {
 
 // ─── Stock Adjust ─────────────────────────────────────────────────────────────
 function openStockAdjust(id) {
+  if (!requirePermission('manageInventory', 'stock adjustments')) return;
   const p = products.find(x => x.id === id);
   if (!p) return;
   stockAdjustProductId = id; stockAdjustMode = 'add';
@@ -2192,6 +2271,7 @@ function switchStockTab(mode, btn) {
 }
 
 function applyStockAdjust() {
+  if (!requirePermission('manageInventory', 'stock adjustments')) return;
   const qty = parseInt(document.getElementById('stock-adjust-qty').value) || 0;
   if (qty < 0) { showNotification('Enter a positive number', 'error'); return; }
   const p = products.find(x => x.id === stockAdjustProductId);
@@ -2250,8 +2330,8 @@ function renderStaffTable(list) {
       </td>
       <td style="font-family:var(--font-serif); font-size:16px; letter-spacing:0.1em; color:var(--white-dim);">${pinMasked}</td>
       <td style="white-space:nowrap;">
-        <button class="inv-btn" onclick="openEditStaff('${s.id}')" style="margin-right:6px;">Edit</button>
-        ${isMe ? '<span style="font-size:10px; color:var(--white-dim); letter-spacing:0.06em;">(you)</span>' : `<button class="inv-btn" onclick="deleteStaff('${s.id}')" style="color:var(--red); border-color:rgba(196,95,95,0.35); background:rgba(196,95,95,0.07);">🗑 Remove</button>`}
+        ${can('manageStaff') ? `<button class="inv-btn" onclick="openEditStaff('${s.id}')" style="margin-right:6px;">Edit</button>` : ''}
+        ${isMe ? '<span style="font-size:10px; color:var(--white-dim); letter-spacing:0.06em;">(you)</span>' : (can('manageStaff') ? `<button class="inv-btn" onclick="deleteStaff('${s.id}')" style="color:var(--red); border-color:rgba(196,95,95,0.35); background:rgba(196,95,95,0.07);">🗑 Remove</button>` : '')}
       </td>
     </tr>`;
   }).join('');
@@ -2260,6 +2340,7 @@ function renderStaffTable(list) {
 let editingStaffId = null;
 
 function openAddStaff() {
+  if (!requirePermission('manageStaff', 'staff management')) return;
   editingStaffId = null;
   document.getElementById('staff-modal-title').textContent = 'Add Staff Member';
   document.getElementById('sf-id').value = '';
@@ -2272,6 +2353,7 @@ function openAddStaff() {
 }
 
 function openEditStaff(id) {
+  if (!requirePermission('manageStaff', 'staff management')) return;
   const list = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
   const s = list.find(x => x.id === id);
   if (!s) return;
@@ -2287,6 +2369,7 @@ function openEditStaff(id) {
 }
 
 async function saveStaff() {
+  if (!requirePermission('manageStaff', 'staff management')) return;
   const errEl = document.getElementById('staff-modal-error');
   errEl.textContent = '';
 
@@ -2324,6 +2407,7 @@ async function saveStaff() {
 }
 
 function deleteStaff(id) {
+  if (!requirePermission('manageStaff', 'staff management')) return;
   const list = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
   const s = list.find(x => x.id === id);
   if (!s) return;
@@ -3109,6 +3193,10 @@ async function loadDashboard() {
 
 // ─── Views ────────────────────────────────────────────────────────────────────
 function showView(name) {
+  if (!canViewNav(name)) {
+    showNotification(`Your role (${currentStaff?.role || 'unknown'}) doesn't have access to that section`, 'error');
+    return;
+  }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${name}`).classList.add('active');
@@ -3165,6 +3253,7 @@ function copyHostId() {
 }
 
 async function resetDatabase() {
+  if (!requirePermission('clearData', 'resetting the database')) return;
   const btn = document.getElementById('btn-reset-db');
   // Two-step confirm
   if (btn.dataset.confirm !== '1') {
