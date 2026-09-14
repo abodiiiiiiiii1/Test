@@ -830,16 +830,13 @@ select option { background: #141826; }
         <div class="status-dot" id="join-status-dot"></div>
         <span id="join-status-text">جاري الاتصال...</span>
       </div>
+      <div class="info-strip">سيتم الانضمام تلقائياً للغرفة المفتوحة على نفس الشبكة</div>
       <div class="form-row">
         <label>اسمك</label>
         <input type="text" id="join-name-input" placeholder="اسمك" maxlength="20" />
       </div>
-      <div class="form-row">
-        <label>كود الغرفة</label>
-        <input type="text" id="room-code-input" placeholder="أدخل الكود" maxlength="6" style="direction:ltr;text-align:center;font-size:22px;font-weight:900;letter-spacing:6px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" />
-      </div>
       <button class="btn-primary" id="join-room-btn" onclick="joinRoom()" disabled>
-        انضم للعبة
+        انضم للعبة تلقائياً
       </button>
     </div>
   </div>
@@ -853,9 +850,10 @@ select option { background: #141826; }
 
   <div class="waiting-card">
     <div class="room-code-box">
-      <div class="room-code-label">كود الغرفة</div>
-      <div class="room-code-value" id="display-room-code">------</div>
-      <div class="room-code-hint">شارك هذا الكود مع اللاعبين</div>
+      <div class="room-code-label">رابط الانضمام</div>
+      <div class="room-code-value" id="display-room-code" style="font-size:14px;letter-spacing:1px;word-break:break-all;line-height:1.4;"></div>
+      <div class="room-code-hint">شارك هذا الرابط — أو افتح الصفحة واضغط "انضمام تلقائي"</div>
+      <button class="btn-secondary" style="margin-top:12px;width:100%;" onclick="copyJoinLink()">📋 نسخ الرابط</button>
     </div>
 
     <h2 style="font-size:15px;color:var(--gold);margin-bottom:12px;font-weight:700;">اللاعبون المتصلون (<span id="player-count-waiting">0</span>)</h2>
@@ -1146,29 +1144,61 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ════════════════════════════════════════════════
-   PLAYER: JOIN ROOM
+   ROOM ID HELPERS
+   Room ID lives in the URL hash: #mafia-XXXXXX
+   Host sets it; players read it automatically.
+════════════════════════════════════════════════ */
+function getRoomIdFromHash() {
+  const h = location.hash.replace('#', '');
+  return h.startsWith('mafia-') ? h : null;
+}
+
+function setRoomHash(code) {
+  location.hash = 'mafia-' + code;
+}
+
+function getJoinLink() {
+  return location.href.split('#')[0] + '#mafia-' + roomCode;
+}
+
+function copyJoinLink() {
+  navigator.clipboard.writeText(getJoinLink()).then(() => {
+    const btn = document.querySelector('[onclick="copyJoinLink()"]');
+    if (btn) { btn.textContent = '✅ تم النسخ'; setTimeout(() => btn.textContent = '📋 نسخ الرابط', 2000); }
+  });
+}
+
+/* ════════════════════════════════════════════════
+   PLAYER: JOIN ROOM (auto — reads room from URL hash)
 ════════════════════════════════════════════════ */
 function joinRoom() {
   const name = document.getElementById('join-name-input').value.trim() || 'لاعب';
-  const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-  if (code.length < 4) { alert('أدخل كود الغرفة الصحيح'); return; }
-
   myName = name;
   isHost = false;
 
+  // Room ID comes from URL hash set by host
+  const roomId = getRoomIdFromHash();
+  if (!roomId) {
+    alert('لا توجد غرفة مفتوحة. اطلب من المضيف مشاركة الرابط.');
+    return;
+  }
+
   showConnecting('جاري الاتصال بالغرفة...');
 
-  // We need to find the host's full peer ID
-  // Strategy: try the code as a suffix of common PeerJS IDs
-  // The host shares their last-6-char code; we stored full peerId in a side channel
-  // Simplest approach: host's "room" peer = their full peerId. We broadcast it differently.
-  // REVISED: We'll use the code directly as the peer ID to connect to. Host creates
-  // a SECOND named peer with the room code. Much simpler.
-
-  const conn = peer.connect('mafia-room-' + code, { reliable: true });
+  const conn = peer.connect(roomId, { reliable: true });
   hostConn = conn;
 
+  let opened = false;
+  const timeout = setTimeout(() => {
+    if (!opened) {
+      hideConnecting();
+      alert('لم يتم العثور على الغرفة. تأكد من أن المضيف فتح الغرفة وحاول مجدداً.');
+    }
+  }, 12000);
+
   conn.on('open', () => {
+    opened = true;
+    clearTimeout(timeout);
     hideConnecting();
     send(conn, { type:'join', name: myName });
     conn.on('data', (data) => handlePlayerReceive(data));
@@ -1182,32 +1212,35 @@ function joinRoom() {
   });
 
   conn.on('error', (err) => {
+    clearTimeout(timeout);
     hideConnecting();
-    alert('لم يتم العثور على الغرفة. تأكد من الكود وحاول مجدداً.');
+    alert('فشل الاتصال: ' + err.type + '. تأكد من أن المضيف فتح الغرفة وحاول مجدداً.');
   });
 }
 
 /* ════════════════════════════════════════════════
-   HOST: CREATE NAMED ROOM PEER
+   HOST: CREATE ROOM (sets URL hash as the room ID)
 ════════════════════════════════════════════════ */
-// Override createRoom to also create a named peer for joining
 function createRoom() {
   const name = document.getElementById('host-name-input').value.trim() || 'المضيف';
   myName = name;
   isHost = true;
 
-  // Generate 6-char room code
+  // Generate a unique room ID and embed it in the URL hash
   roomCode = Math.random().toString(36).slice(2,8).toUpperCase();
+  const roomPeerId = 'mafia-' + roomCode;
+  setRoomHash(roomCode);
 
-  // Create a named peer that players will connect to
-  const roomPeer = new Peer('mafia-room-' + roomCode, makePeerConfig());
+  // Create a named peer — players connect to this peer ID directly
+  const roomPeer = new Peer(roomPeerId, makePeerConfig());
 
   showConnecting('جاري إنشاء الغرفة...');
 
   roomPeer.on('open', () => {
     hideConnecting();
     hostPlayers = [{ peerId: myPeerId, name: myName, connected: true, isHost: true }];
-    document.getElementById('display-room-code').textContent = roomCode;
+    // Show join link in waiting room
+    document.getElementById('display-room-code').textContent = getJoinLink();
     updateWaitingList();
     showScreen('waiting');
 
@@ -1224,13 +1257,20 @@ function createRoom() {
   roomPeer.on('error', (err) => {
     hideConnecting();
     if (err.type === 'unavailable-id') {
-      // Try again with new code
-      createRoom();
+      createRoom(); // retry with new code
     } else {
       alert('خطأ في إنشاء الغرفة: ' + err.type);
     }
   });
 }
+
+/* Auto-join if URL hash contains a room ID */
+window.addEventListener('DOMContentLoaded', () => {
+  if (getRoomIdFromHash()) {
+    // Pre-select the join tab for users arriving via a shared link
+    switchTab('join');
+  }
+});
 
 /* ════════════════════════════════════════════════
    MESSAGING
