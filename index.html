@@ -2,785 +2,880 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>المافيا</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>المافيا — متعدد اللاعبين</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg-deep: #06080f;
-    --bg-card: #0d1120;
-    --bg-raised: #141826;
-    --border: #1e2640;
-    --border-glow: #2a3560;
-    --crimson: #a82323;
-    --crimson-light: #c0392b;
-    --gold: #b8963e;
-    --gold-light: #d4a847;
-    --text-primary: #e2d9c8;
-    --text-muted: #7a8399;
-    --text-dim: #4a5270;
-    --green: #2d6e4e;
-    --green-light: #3d9469;
-    --blue: #2a4a8a;
-    --blue-light: #3d6bbf;
-    --purple: #5a2e7a;
-    --purple-light: #7a3fa8;
-    --orange: #8a4a10;
-    --orange-light: #c06820;
-  }
-
-  html, body {
-    background: var(--bg-deep);
-    color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
-    font-size: 16px;
-    min-height: 100vh;
-    line-height: 1.6;
-  }
-
-  /* ─── SCREENS ─── */
-  .screen { display: none; flex-direction: column; min-height: 100vh; }
-  .screen.active { display: flex; }
-
-  /* ─── SETUP SCREEN ─── */
-  #screen-setup {
-    align-items: center;
-    padding: 40px 20px;
-    background: radial-gradient(ellipse at 50% 0%, #1a0a0a 0%, var(--bg-deep) 70%);
-  }
-
-  .game-title {
-    text-align: center;
-    margin-bottom: 48px;
-  }
-
-  .game-title .arabic-title {
-    font-size: clamp(64px, 14vw, 120px);
-    font-weight: 900;
-    color: var(--crimson-light);
-    letter-spacing: -2px;
-    line-height: 1;
-    text-shadow: 0 0 60px rgba(168, 35, 35, 0.4), 0 4px 20px rgba(0,0,0,0.8);
-    display: block;
-  }
-
-  .game-title .subtitle {
-    font-size: 13px;
-    font-weight: 300;
-    color: var(--text-muted);
-    letter-spacing: 4px;
-    margin-top: 8px;
-    display: block;
-  }
-
-  .setup-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    width: 100%;
-    max-width: 560px;
-    padding: 32px;
-  }
-
-  .setup-card h2 {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--gold);
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .form-row {
-    margin-bottom: 20px;
-  }
-
-  .form-row label {
-    display: block;
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-
-  .form-row input, .form-row select {
-    width: 100%;
-    background: var(--bg-deep);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
-    font-size: 15px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .form-row input:focus, .form-row select:focus {
-    border-color: var(--crimson);
-  }
-
-  .player-inputs { display: flex; flex-direction: column; gap: 8px; }
-
-  .player-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .player-input-row .player-num {
-    width: 28px;
-    height: 28px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-
-  .player-input-row input {
-    flex: 1;
-    background: var(--bg-deep);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px;
-    padding: 8px 12px;
-    outline: none;
-  }
-
-  .player-input-row input:focus { border-color: var(--gold); }
-
-  .roles-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 16px;
-  }
-
-  .role-toggle {
-    background: var(--bg-deep);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: border-color 0.2s, background 0.2s;
-    user-select: none;
-  }
-
-  .role-toggle:hover { border-color: var(--border-glow); }
-  .role-toggle.on { border-color: var(--gold); background: rgba(184,150,62,0.06); }
-
-  .role-toggle .icon { font-size: 18px; }
-  .role-toggle .name { font-size: 13px; font-weight: 600; flex: 1; }
-  .role-toggle .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--text-dim);
-    transition: background 0.2s;
-  }
-  .role-toggle.on .dot { background: var(--gold); }
-
-  .btn-primary {
-    width: 100%;
-    padding: 14px;
-    background: var(--crimson);
-    border: none;
-    color: #fff;
-    font-family: 'Cairo', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 28px;
-    transition: background 0.2s;
-  }
-  .btn-primary:hover { background: var(--crimson-light); }
-
-  .btn-secondary {
-    padding: 10px 20px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .btn-secondary:hover { border-color: var(--text-muted); color: var(--text-primary); }
-
-  .count-control {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  .count-btn {
-    width: 38px; height: 38px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-    flex-shrink: 0;
-  }
-  .count-btn:hover { background: var(--border); }
-
-  .count-display {
-    width: 60px; height: 38px;
-    background: var(--bg-deep);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  /* ─── ROLE REVEAL SCREEN ─── */
-  #screen-reveal {
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: radial-gradient(ellipse at 50% 50%, #100a0a 0%, var(--bg-deep) 80%);
-  }
-
-  .reveal-wrapper { width: 100%; max-width: 440px; }
-
-  .reveal-step { text-align: center; }
-
-  .reveal-instruction {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 32px;
-  }
-
-  .reveal-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 40px 32px;
-    position: relative;
-    margin-bottom: 24px;
-  }
-
-  .reveal-card.flipped .card-back { display: none; }
-  .reveal-card:not(.flipped) .card-front { display: none; }
-
-  .card-back {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .card-back .lock-icon { font-size: 48px; opacity: 0.3; }
-  .card-back .player-name-reveal {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .card-back .tap-hint {
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-
-  .card-front {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .role-icon-big { font-size: 64px; line-height: 1; }
-
-  .role-name-big {
-    font-size: 28px;
-    font-weight: 900;
-  }
-
-  .role-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-    text-align: center;
-    max-width: 280px;
-    line-height: 1.7;
-  }
-
-  .role-team {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    padding: 4px 12px;
-    border: 1px solid;
-  }
-
-  .team-mafia { color: var(--crimson-light); border-color: var(--crimson); background: rgba(168,35,35,0.1); }
-  .team-town { color: var(--green-light); border-color: var(--green); background: rgba(45,110,78,0.1); }
-  .team-neutral { color: var(--gold-light); border-color: var(--gold); background: rgba(184,150,62,0.1); }
-
-  .reveal-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .reveal-progress {
-    font-size: 13px;
-    color: var(--text-dim);
-  }
-
-  .reveal-flip-btn {
-    width: 100%;
-    padding: 14px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border-glow);
-    color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-bottom: 16px;
-    transition: background 0.2s, border-color 0.2s;
-  }
-  .reveal-flip-btn:hover { background: var(--border); border-color: var(--text-muted); }
-
-  /* ─── GAME SCREEN ─── */
-  #screen-game {
-    background: var(--bg-deep);
-  }
-
-  .game-header {
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .game-header .phase-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .phase-icon { font-size: 20px; }
-
-  .day-badge { color: var(--gold-light); }
-  .night-badge { color: var(--blue-light); }
-
-  .round-label {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-weight: 600;
-  }
-
-  .game-body { padding: 20px; max-width: 700px; margin: 0 auto; }
-
-  .section-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    margin-bottom: 12px;
-  }
-
-  /* Players grid */
-  .players-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 8px;
-    margin-bottom: 28px;
-  }
-
-  .player-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 12px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    text-align: center;
-  }
-
-  .player-card:hover:not(.eliminated):not(.protected-card) { border-color: var(--border-glow); }
-
-  .player-card.selected {
-    border-color: var(--gold);
-    background: rgba(184,150,62,0.07);
-  }
-
-  .player-card.eliminated {
-    opacity: 0.35;
-    cursor: default;
-    position: relative;
-  }
-
-  .player-card.eliminated::after {
-    content: '†';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 40px;
-    color: var(--crimson);
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
-  .player-card.protected-card {
-    border-color: var(--green);
-    background: rgba(45,110,78,0.07);
-    cursor: default;
-  }
-
-  .player-avatar {
-    width: 40px;
-    height: 40px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 900;
-    color: var(--text-muted);
-  }
-
-  .player-card-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-primary);
-    word-break: break-all;
-  }
-
-  .vote-count {
-    font-size: 11px;
-    color: var(--crimson-light);
-    font-weight: 700;
-  }
-
-  .status-pip {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--green-light);
-    position: absolute;
-    top: 6px;
-    left: 6px;
-  }
-
-  /* Phase actions */
-  .phase-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-
-  .phase-panel h3 {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-  }
-
-  .phase-panel p {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-
-  .action-btn {
-    padding: 11px 22px;
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    border: 1px solid;
-    transition: background 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .action-btn-red {
-    background: rgba(168,35,35,0.15);
-    border-color: var(--crimson);
-    color: var(--crimson-light);
-  }
-  .action-btn-red:hover { background: rgba(168,35,35,0.28); }
-
-  .action-btn-gold {
-    background: rgba(184,150,62,0.12);
-    border-color: var(--gold);
-    color: var(--gold-light);
-  }
-  .action-btn-gold:hover { background: rgba(184,150,62,0.25); }
-
-  .action-btn-green {
-    background: rgba(45,110,78,0.12);
-    border-color: var(--green);
-    color: var(--green-light);
-  }
-  .action-btn-green:hover { background: rgba(45,110,78,0.25); }
-
-  .action-btn-blue {
-    background: rgba(42,74,138,0.15);
-    border-color: var(--blue);
-    color: var(--blue-light);
-  }
-  .action-btn-blue:hover { background: rgba(42,74,138,0.28); }
-
-  .action-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  /* Log */
-  .event-log {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    max-height: 180px;
-    overflow-y: auto;
-  }
-
-  .log-entry {
-    font-size: 13px;
-    color: var(--text-muted);
-    padding: 4px 0;
-    border-bottom: 1px solid var(--border);
-    line-height: 1.5;
-  }
-  .log-entry:last-child { border-bottom: none; }
-  .log-entry.log-red { color: var(--crimson-light); }
-  .log-entry.log-gold { color: var(--gold-light); }
-  .log-entry.log-green { color: var(--green-light); }
-
-  /* Night modal */
-  .night-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.92);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .night-overlay.active { display: flex; }
-
-  .night-modal {
-    background: var(--bg-card);
-    border: 1px solid var(--border-glow);
-    width: 100%;
-    max-width: 440px;
-    padding: 32px;
-  }
-
-  .night-modal h2 {
-    font-size: 20px;
-    font-weight: 900;
-    margin-bottom: 6px;
-  }
-
-  .night-modal .modal-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    line-height: 1.6;
-  }
-
-  .modal-player-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
-
-  .modal-player-btn {
-    width: 100%;
-    padding: 11px 16px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: right;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .modal-player-btn:hover:not(:disabled) { border-color: var(--gold); background: rgba(184,150,62,0.06); }
-  .modal-player-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .modal-player-btn.selected-modal { border-color: var(--gold); background: rgba(184,150,62,0.1); color: var(--gold-light); }
-
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-
-  /* Win screen */
-  #screen-win {
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    background: radial-gradient(ellipse at 50% 30%, #1a0505 0%, var(--bg-deep) 65%);
-  }
-
-  .win-box {
-    text-align: center;
-    max-width: 480px;
-  }
-
-  .win-icon { font-size: 80px; margin-bottom: 20px; }
-
-  .win-title {
-    font-size: 42px;
-    font-weight: 900;
-    margin-bottom: 12px;
-  }
-
-  .win-desc {
-    font-size: 15px;
-    color: var(--text-muted);
-    margin-bottom: 40px;
-    line-height: 1.7;
-  }
-
-  .roles-reveal-list {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    margin-bottom: 32px;
-    text-align: right;
-  }
-
-  .roles-reveal-item {
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-  .roles-reveal-item:last-child { border-bottom: none; }
-  .roles-reveal-item .rri-name { font-weight: 700; flex: 1; }
-  .roles-reveal-item .rri-role { color: var(--text-muted); font-size: 12px; }
-
-  /* Night role queue progress */
-  .night-role-indicator {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .nri-dot {
-    height: 4px;
-    flex: 1;
-    background: var(--border);
-    min-width: 30px;
-    position: relative;
-  }
-  .nri-dot.done { background: var(--gold); }
-  .nri-dot.current { background: var(--crimson); }
-
-  /* Investigate result */
-  .investigate-result {
-    padding: 12px 16px;
-    border: 1px solid;
-    font-size: 14px;
-    font-weight: 700;
-    margin-top: 12px;
-    display: none;
-  }
-  .investigate-result.mafia-result { border-color: var(--crimson); color: var(--crimson-light); background: rgba(168,35,35,0.1); }
-  .investigate-result.innocent-result { border-color: var(--green); color: var(--green-light); background: rgba(45,110,78,0.1); }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-glow); }
-
-  /* Utility */
-  .mt-12 { margin-top: 12px; }
-  .flex-row { display: flex; gap: 10px; align-items: center; }
-  .flex-1 { flex: 1; }
-  .text-center { text-align: center; }
-
-  select option { background: #141826; }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 20px 0;
-  }
-
-  .info-strip {
-    background: rgba(184,150,62,0.07);
-    border: 1px solid rgba(184,150,62,0.2);
-    padding: 10px 14px;
-    font-size: 12px;
-    color: var(--gold-light);
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-
-  .detective-note {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-
-  @media (max-width: 400px) {
-    .roles-grid { grid-template-columns: 1fr; }
-    .players-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #06080f;
+  --bg-card: #0d1120;
+  --bg-raised: #141826;
+  --border: #1e2640;
+  --border-glow: #2a3560;
+  --crimson: #a82323;
+  --crimson-light: #c0392b;
+  --gold: #b8963e;
+  --gold-light: #d4a847;
+  --text-primary: #e2d9c8;
+  --text-muted: #7a8399;
+  --text-dim: #4a5270;
+  --green: #2d6e4e;
+  --green-light: #3d9469;
+  --blue: #2a4a8a;
+  --blue-light: #3d6bbf;
+  --purple: #5a2e7a;
+  --purple-light: #7a3fa8;
+  --orange: #8a4a10;
+  --orange-light: #c06820;
+}
+
+html, body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Cairo', sans-serif;
+  font-size: 16px;
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── SCREENS ─── */
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ─── LOBBY SCREEN ─── */
+#screen-lobby {
+  align-items: center;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at 50% 0%, #1a0a0a 0%, var(--bg-deep) 70%);
+}
+
+.game-title { text-align: center; margin-bottom: 48px; }
+.game-title .arabic-title {
+  font-size: clamp(64px, 14vw, 120px);
+  font-weight: 900;
+  color: var(--crimson-light);
+  letter-spacing: -2px;
+  line-height: 1;
+  text-shadow: 0 0 60px rgba(168,35,35,0.4), 0 4px 20px rgba(0,0,0,0.8);
+  display: block;
+}
+.game-title .subtitle {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  margin-top: 8px;
+  display: block;
+}
+
+.lobby-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 520px;
+  padding: 32px;
+}
+
+.lobby-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+.tab-btn {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.tab-btn.active {
+  background: var(--crimson);
+  color: #fff;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.form-row { margin-bottom: 18px; }
+.form-row label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.form-row input, .form-row select {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Cairo', sans-serif;
+  font-size: 15px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-row input:focus, .form-row select:focus { border-color: var(--crimson); }
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--crimson);
+  border: none;
+  color: #fff;
+  font-family: 'Cairo', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background: var(--crimson-light); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-secondary:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+.status-bar {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-glow);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--gold-light);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.status-dot.connected { background: var(--green-light); animation: none; }
+.status-dot.error { background: var(--crimson-light); animation: none; }
+
+/* ─── HOST WAITING ROOM ─── */
+#screen-waiting {
+  align-items: center;
+  padding: 32px 20px;
+  background: radial-gradient(ellipse at 50% 0%, #1a0a0a 0%, var(--bg-deep) 70%);
+}
+
+.waiting-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 560px;
+  padding: 32px;
+}
+
+.room-code-box {
+  background: var(--bg-deep);
+  border: 2px solid var(--gold);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.room-code-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.room-code-value {
+  font-size: 40px;
+  font-weight: 900;
+  color: var(--gold-light);
+  letter-spacing: 8px;
+  direction: ltr;
+}
+.room-code-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.players-waiting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  min-height: 60px;
+}
+.waiting-player-row {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.waiting-player-row .pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green-light);
+  flex-shrink: 0;
+}
+.waiting-player-row .host-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 1px 6px;
+  margin-right: auto;
+}
+
+/* ─── SETUP (HOST) ─── */
+#screen-setup {
+  align-items: center;
+  padding: 32px 20px;
+  background: radial-gradient(ellipse at 50% 0%, #1a0a0a 0%, var(--bg-deep) 70%);
+}
+
+.setup-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 560px;
+  padding: 32px;
+}
+
+.setup-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.role-toggle {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+.role-toggle:hover { border-color: var(--border-glow); }
+.role-toggle.on { border-color: var(--gold); background: rgba(184,150,62,0.06); }
+.role-toggle .icon { font-size: 18px; }
+.role-toggle .name { font-size: 13px; font-weight: 600; flex: 1; }
+.role-toggle .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background 0.2s;
+}
+.role-toggle.on .dot { background: var(--gold); }
+
+/* ─── PLAYER SCREEN (on player's phone) ─── */
+#screen-player {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 16px;
+  background: radial-gradient(ellipse at 50% 0%, #1a0a0a 0%, var(--bg-deep) 70%);
+  min-height: 100vh;
+}
+
+.player-phone-header {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.player-phone-header .game-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--crimson-light);
+}
+.player-phone-header .conn-status {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.player-role-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 24px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.role-icon-xl { font-size: 56px; margin-bottom: 10px; }
+.role-name-xl { font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+.role-team-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 4px 12px;
+  border: 1px solid;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.team-mafia { color: var(--crimson-light); border-color: var(--crimson); background: rgba(168,35,35,0.1); }
+.team-town  { color: var(--green-light);   border-color: var(--green);   background: rgba(45,110,78,0.1); }
+.team-neutral { color: var(--gold-light);  border-color: var(--gold);    background: rgba(184,150,62,0.1); }
+
+.role-desc-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* Mafia team reveal */
+.mafia-team-box {
+  background: rgba(168,35,35,0.07);
+  border: 1px solid var(--crimson);
+  padding: 14px;
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.mafia-team-box .mt-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--crimson-light);
+  margin-bottom: 8px;
+}
+.mafia-team-box .mt-member {
+  color: var(--text-primary);
+  padding: 3px 0;
+  font-weight: 600;
+}
+
+/* Phase indicator on player screen */
+.phase-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 440px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.phase-card .ph-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.phase-card .ph-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Night action (player's action) */
+.night-action-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.night-action-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.night-action-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.action-player-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.action-player-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+  transition: border-color 0.15s, background 0.15s;
+}
+.action-player-btn:hover { border-color: var(--gold); background: rgba(184,150,62,0.06); }
+.action-player-btn.sel { border-color: var(--gold); background: rgba(184,150,62,0.1); color: var(--gold-light); }
+
+.investigate-result {
+  padding: 12px 16px;
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: none;
+}
+.investigate-result.mafia-res { border-color: var(--crimson); color: var(--crimson-light); background: rgba(168,35,35,0.1); }
+.investigate-result.innocent-res { border-color: var(--green); color: var(--green-light); background: rgba(45,110,78,0.1); }
+
+/* Vote panel */
+.vote-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.vote-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.vote-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+
+/* Player alive status */
+.eliminated-banner {
+  background: rgba(168,35,35,0.15);
+  border: 1px solid var(--crimson);
+  color: var(--crimson-light);
+  padding: 16px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 16px;
+}
+
+/* Event log */
+.event-log {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.log-entry {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-entry.log-red   { color: var(--crimson-light); }
+.log-entry.log-gold  { color: var(--gold-light); }
+.log-entry.log-green { color: var(--green-light); }
+
+/* ─── HOST GAME SCREEN ─── */
+#screen-game {
+  background: var(--bg-deep);
+}
+
+.game-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.game-header .phase-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.phase-icon { font-size: 20px; }
+.day-badge  { color: var(--gold-light); }
+.night-badge { color: var(--blue-light); }
+.round-label { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+
+.game-body { padding: 20px; max-width: 700px; margin: 0 auto; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+/* Players grid */
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.player-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.player-card:hover:not(.eliminated) { border-color: var(--border-glow); }
+.player-card.selected {
+  border-color: var(--gold);
+  background: rgba(184,150,62,0.07);
+}
+.player-card.eliminated {
+  opacity: 0.35;
+  cursor: default;
+  position: relative;
+}
+.player-card.eliminated::after {
+  content: '†';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 40px;
+  color: var(--crimson);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.player-avatar {
+  width: 40px; height: 40px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-muted);
+}
+.player-card-name { font-size: 12px; font-weight: 700; color: var(--text-primary); word-break: break-all; }
+.player-card-role { font-size: 10px; color: var(--text-dim); }
+.status-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green-light);
+  position: absolute;
+  top: 6px; left: 6px;
+}
+.connected-pip { background: var(--green-light); }
+.disconnected-pip { background: var(--crimson-light); }
+
+/* Phase panel */
+.phase-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.phase-panel h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.phase-panel p  { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+
+.action-btn {
+  padding: 11px 22px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.action-btn-red  { background: rgba(168,35,35,0.15); border-color: var(--crimson);  color: var(--crimson-light); }
+.action-btn-red:hover  { background: rgba(168,35,35,0.28); }
+.action-btn-gold { background: rgba(184,150,62,0.12); border-color: var(--gold);    color: var(--gold-light); }
+.action-btn-gold:hover { background: rgba(184,150,62,0.25); }
+.action-btn-green { background: rgba(45,110,78,0.12); border-color: var(--green);  color: var(--green-light); }
+.action-btn-green:hover { background: rgba(45,110,78,0.25); }
+.action-btn-blue { background: rgba(42,74,138,0.15); border-color: var(--blue);    color: var(--blue-light); }
+.action-btn-blue:hover { background: rgba(42,74,138,0.28); }
+.action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.host-event-log {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* Night modal (host) */
+.night-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.night-overlay.active { display: flex; }
+.night-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+}
+.night-modal h2 { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+.night-modal .modal-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+.modal-player-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.modal-player-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+  transition: border-color 0.15s, background 0.15s;
+}
+.modal-player-btn:hover { border-color: var(--gold); background: rgba(184,150,62,0.06); }
+.modal-player-btn.selected-modal { border-color: var(--gold); background: rgba(184,150,62,0.1); color: var(--gold-light); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* Night role indicator */
+.night-role-indicator { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.nri-dot { height: 4px; flex: 1; background: var(--border); min-width: 30px; }
+.nri-dot.done { background: var(--gold); }
+.nri-dot.current { background: var(--crimson); }
+
+/* Win screen */
+#screen-win {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at 50% 30%, #1a0505 0%, var(--bg-deep) 65%);
+}
+.win-box { text-align: center; max-width: 480px; }
+.win-icon { font-size: 80px; margin-bottom: 20px; }
+.win-title { font-size: 42px; font-weight: 900; margin-bottom: 12px; }
+.win-desc  { font-size: 15px; color: var(--text-muted); margin-bottom: 40px; line-height: 1.7; }
+.roles-reveal-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  margin-bottom: 32px;
+  text-align: right;
+}
+.roles-reveal-item {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.roles-reveal-item:last-child { border-bottom: none; }
+.roles-reveal-item .rri-name { font-weight: 700; flex: 1; }
+.roles-reveal-item .rri-role { color: var(--text-muted); font-size: 12px; }
+
+/* Waiting for action */
+.waiting-action {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 16px;
+}
+.waiting-action .spin {
+  display: inline-block;
+  animation: spin 1.5s linear infinite;
+  margin-left: 8px;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Connecting overlay */
+.connecting-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg-deep);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.connecting-overlay.hidden { display: none; }
+.connecting-title { font-size: 28px; font-weight: 900; color: var(--gold-light); }
+
+/* Utilities */
+.flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mt-12 { margin-top: 12px; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.info-strip {
+  background: rgba(184,150,62,0.07);
+  border: 1px solid rgba(184,150,62,0.2);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--gold-light);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+select option { background: #141826; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+@media (max-width: 400px) {
+  .roles-grid { grid-template-columns: 1fr; }
+  .players-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════ SETUP ═══ -->
-<section id="screen-setup" class="screen active">
+<!-- CONNECTING OVERLAY -->
+<div class="connecting-overlay hidden" id="connecting-overlay">
+  <div class="connecting-title">المافيا</div>
+  <div id="connecting-msg">جاري الاتصال...</div>
+</div>
+
+<!-- ═══ LOBBY ═══ -->
+<section id="screen-lobby" class="screen active">
   <div class="game-title">
     <span class="arabic-title">المافيا</span>
-    <span class="subtitle">لعبة الخداع والبقاء</span>
+    <span class="subtitle">متعدد الأجهزة</span>
+  </div>
+
+  <div class="lobby-card">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('host')">🎯 استضافة لعبة</button>
+      <button class="tab-btn" onclick="switchTab('join')">📱 انضمام للعبة</button>
+    </div>
+
+    <!-- HOST TAB -->
+    <div class="tab-panel active" id="tab-host">
+      <div class="status-bar" id="host-status-bar">
+        <div class="status-dot" id="host-status-dot"></div>
+        <span id="host-status-text">جاري الاتصال بخادم الإشارات...</span>
+      </div>
+      <div class="form-row">
+        <label>اسمك (المضيف)</label>
+        <input type="text" id="host-name-input" placeholder="اسمك" maxlength="20" />
+      </div>
+      <button class="btn-primary" id="create-room-btn" onclick="createRoom()" disabled>
+        إنشاء غرفة
+      </button>
+    </div>
+
+    <!-- JOIN TAB -->
+    <div class="tab-panel" id="tab-join">
+      <div class="status-bar" id="join-status-bar">
+        <div class="status-dot" id="join-status-dot"></div>
+        <span id="join-status-text">جاري الاتصال...</span>
+      </div>
+      <div class="form-row">
+        <label>اسمك</label>
+        <input type="text" id="join-name-input" placeholder="اسمك" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <label>كود الغرفة</label>
+        <input type="text" id="room-code-input" placeholder="أدخل الكود" maxlength="6" style="direction:ltr;text-align:center;font-size:22px;font-weight:900;letter-spacing:6px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" />
+      </div>
+      <button class="btn-primary" id="join-room-btn" onclick="joinRoom()" disabled>
+        انضم للعبة
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ WAITING ROOM (HOST) ═══ -->
+<section id="screen-waiting" class="screen">
+  <div class="game-title" style="margin-bottom:24px;">
+    <span class="arabic-title" style="font-size:clamp(40px,10vw,72px);">غرفة الانتظار</span>
+  </div>
+
+  <div class="waiting-card">
+    <div class="room-code-box">
+      <div class="room-code-label">كود الغرفة</div>
+      <div class="room-code-value" id="display-room-code">------</div>
+      <div class="room-code-hint">شارك هذا الكود مع اللاعبين</div>
+    </div>
+
+    <h2 style="font-size:15px;color:var(--gold);margin-bottom:12px;font-weight:700;">اللاعبون المتصلون (<span id="player-count-waiting">0</span>)</h2>
+    <div class="players-waiting-list" id="players-waiting-list"></div>
+
+    <button class="btn-primary" id="start-game-btn" onclick="proceedToSetup()" disabled>
+      بدء الإعداد ▶
+    </button>
+  </div>
+</section>
+
+<!-- ═══ SETUP (HOST) ═══ -->
+<section id="screen-setup" class="screen">
+  <div class="game-title" style="margin-bottom:24px;">
+    <span class="arabic-title" style="font-size:clamp(40px,10vw,72px);">إعداد اللعبة</span>
   </div>
 
   <div class="setup-card">
-    <h2>إعداد اللعبة</h2>
-
-    <div class="form-row">
-      <label>عدد اللاعبين</label>
-      <div class="count-control">
-        <button class="count-btn" onclick="changeCount(-1)">−</button>
-        <div class="count-display" id="count-display">6</div>
-        <button class="count-btn" onclick="changeCount(1)">+</button>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <label>أسماء اللاعبين</label>
-      <div class="player-inputs" id="player-inputs"></div>
-    </div>
-
-    <hr class="divider" />
-
-    <h2 style="border-bottom:none;margin-bottom:12px;">الأدوار الخاصة</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">المافيا والقروي مُضافان دائماً. اختر الأدوار الإضافية:</p>
+    <h2>الأدوار الخاصة</h2>
+    <div class="info-strip" id="role-info-strip">عدد اللاعبين: <span id="setup-player-count">0</span> — المافيا والقروي مُضافان دائماً</div>
 
     <div class="roles-grid">
       <div class="role-toggle on" id="toggle-doctor" onclick="toggleRole('doctor')">
@@ -805,84 +900,119 @@
       </div>
     </div>
 
-    <button class="btn-primary" onclick="startGame()">ابدأ اللعبة</button>
+    <button class="btn-primary" onclick="distributeRolesAndStart()">توزيع الأدوار وبدء اللعبة</button>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ REVEAL ═══ -->
-<section id="screen-reveal" class="screen">
-  <div class="reveal-wrapper">
-    <div class="game-title" style="margin-bottom:32px;">
-      <span class="arabic-title" style="font-size:48px;">توزيع الأدوار</span>
+<!-- ═══ PLAYER SCREEN (on player device) ═══ -->
+<section id="screen-player" class="screen">
+  <div class="player-phone-header">
+    <div class="game-name">المافيا</div>
+    <div class="conn-status">
+      <div class="status-dot connected" id="player-conn-dot" style="width:6px;height:6px;animation:none;"></div>
+      <span id="player-conn-text">متصل</span>
     </div>
+  </div>
 
-    <p class="reveal-instruction" id="reveal-instruction">مرروا الهاتف لكل لاعب على حدة ليكشف دوره بسرية</p>
+  <!-- Role card -->
+  <div class="player-role-card" id="player-role-card">
+    <div class="role-icon-xl" id="pr-icon"></div>
+    <div class="role-name-xl" id="pr-name"></div>
+    <div class="role-team-badge" id="pr-team"></div>
+    <div class="role-desc-text" id="pr-desc"></div>
+  </div>
 
-    <div id="reveal-card" class="reveal-card">
-      <div class="card-back" id="card-back">
-        <div class="lock-icon">🔒</div>
-        <div class="player-name-reveal" id="reveal-player-name"></div>
-        <div class="tap-hint">اضغط لكشف دورك</div>
-      </div>
-      <div class="card-front" id="card-front">
-        <div class="role-icon-big" id="reveal-role-icon"></div>
-        <div class="role-name-big" id="reveal-role-name"></div>
-        <div class="role-team" id="reveal-role-team"></div>
-        <div class="role-desc" id="reveal-role-desc"></div>
-      </div>
+  <!-- Mafia teammates (only for mafia) -->
+  <div class="mafia-team-box" id="mafia-team-box" style="display:none;">
+    <div class="mt-label">زملاؤك في المافيا</div>
+    <div id="mafia-team-members"></div>
+  </div>
+
+  <!-- Eliminated banner -->
+  <div class="eliminated-banner" id="eliminated-banner" style="display:none;">
+    ☠ لقد أُقصيت من اللعبة — يمكنك مشاهدة الأحداث
+  </div>
+
+  <!-- Phase info -->
+  <div class="phase-card" id="player-phase-card">
+    <div class="ph-title" id="player-phase-title">⌛ في انتظار بدء اللعبة</div>
+    <div class="ph-desc" id="player-phase-desc">انتظر حتى يبدأ المضيف اللعبة</div>
+  </div>
+
+  <!-- Night action (for special roles) -->
+  <div class="night-action-card" id="player-night-action" style="display:none;">
+    <h3 id="pna-title"></h3>
+    <p id="pna-desc"></p>
+    <div class="action-player-list" id="pna-player-list"></div>
+    <div class="investigate-result" id="pna-result"></div>
+    <div class="flex-row">
+      <button class="action-btn action-btn-gold" id="pna-confirm-btn" onclick="sendNightAction()" disabled>تأكيد</button>
+      <button class="btn-secondary" id="pna-skip-btn" onclick="sendNightSkip()" style="display:none;">تخطى</button>
     </div>
-
-    <button class="reveal-flip-btn" id="reveal-btn" onclick="handleRevealBtn()">اكشف الدور</button>
-
-    <div class="reveal-nav">
-      <div class="reveal-progress" id="reveal-progress"></div>
-      <button class="btn-secondary" id="reveal-next" onclick="nextReveal()" style="display:none;">التالي ←</button>
+    <div class="waiting-action" id="pna-waiting" style="display:none;">
+      <span>تم الإرسال — انتظر نتيجة الليل</span>
+      <span class="spin">⏳</span>
     </div>
+  </div>
+
+  <!-- Day voting -->
+  <div class="vote-card" id="player-vote-card" style="display:none;">
+    <h3>🗳 التصويت النهاري</h3>
+    <p>اختر لاعباً للتصويت على إقصائه. سيرى الجميع أصوات اللاعبين الحية.</p>
+    <div class="action-player-list" id="vote-player-list"></div>
+    <button class="action-btn action-btn-red" id="cast-vote-btn" onclick="castVote()" disabled>أدلِ بصوتك</button>
+    <div class="waiting-action" id="vote-waiting" style="display:none;">
+      <span>تم التصويت</span> <span class="spin">⏳</span>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="section-label" style="width:100%;max-width:440px;">سجل الأحداث</div>
+  <div class="event-log" id="player-event-log">
+    <div class="log-entry" style="color:var(--text-dim);">لم تبدأ الأحداث بعد...</div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ GAME ═══ -->
+<!-- ═══ HOST GAME SCREEN ═══ -->
 <section id="screen-game" class="screen">
   <div class="game-header">
     <div class="phase-badge" id="phase-badge"></div>
     <div class="round-label" id="round-label"></div>
   </div>
-
   <div class="game-body">
-
-    <div class="section-label" id="players-section-label">اللاعبون</div>
+    <div class="section-label">اللاعبون</div>
     <div class="players-grid" id="players-grid"></div>
-
     <div class="phase-panel" id="phase-panel">
       <h3 id="panel-title"></h3>
       <p id="panel-desc"></p>
       <div id="panel-actions"></div>
     </div>
-
     <div class="section-label">سجل الأحداث</div>
-    <div class="event-log" id="event-log">
+    <div class="host-event-log" id="event-log">
       <div class="log-entry" style="color:var(--text-dim);">لم تبدأ الأحداث بعد...</div>
     </div>
-
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ NIGHT MODAL ═══ -->
+<!-- ═══ NIGHT MODAL (HOST) ═══ -->
 <div class="night-overlay" id="night-overlay">
   <div class="night-modal">
     <div class="night-role-indicator" id="night-role-indicator"></div>
     <h2 id="night-modal-title"></h2>
     <div class="modal-desc" id="night-modal-desc"></div>
+    <div id="night-waiting-msg" style="display:none;" class="waiting-action">
+      <span id="night-waiting-text">في انتظار اللاعبين...</span>
+      <span class="spin">⏳</span>
+    </div>
     <div class="modal-player-list" id="night-modal-list"></div>
-    <div class="investigate-result" id="investigate-result"></div>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="night-skip-btn" onclick="nightSkip()">تخطى</button>
-      <button class="action-btn action-btn-gold" id="night-confirm-btn" onclick="nightConfirm()" disabled>تأكيد</button>
+    <div class="modal-actions" id="night-modal-actions">
+      <button class="btn-secondary" id="night-skip-btn" onclick="hostNightSkip()">تخطى</button>
+      <button class="action-btn action-btn-gold" id="night-confirm-btn" onclick="hostNightConfirm()" disabled>تأكيد</button>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ WIN ═══ -->
+<!-- ═══ WIN SCREEN ═══ -->
 <section id="screen-win" class="screen">
   <div class="win-box">
     <div class="win-icon" id="win-icon"></div>
@@ -894,305 +1024,616 @@
 </section>
 
 <script>
-/* ═══════════════════════ STATE ═══════════════════════ */
-let playerCount = 6;
-let rolesEnabled = { doctor: true, detective: true, godfather: false, jester: false };
+/* ════════════════════════════════════════════════
+   CONSTANTS & ROLES
+════════════════════════════════════════════════ */
+const ROLES = {
+  mafia:     { name:'المافيا',  icon:'🔪',  team:'mafia',   teamLabel:'فريق المافيا', desc:'اختر ليلاً لاعباً لتقتله مع زملائك.' },
+  godfather: { name:'العراب',   icon:'👑',  team:'mafia',   teamLabel:'فريق المافيا', desc:'زعيم المافيا. تبدو بريئاً أمام المحقق.' },
+  doctor:    { name:'الطبيب',   icon:'👨⚕', team:'town',    teamLabel:'فريق القرية', desc:'اختر ليلاً لاعباً لحمايته من القتل.' },
+  detective: { name:'المحقق',   icon:'🕵', team:'town',    teamLabel:'فريق القرية', desc:'اختر ليلاً لاعباً للتحقيق في هويته.' },
+  villager:  { name:'القروي',   icon:'👨🌾', team:'town',    teamLabel:'فريق القرية', desc:'لا قدرة خاصة. صوّت نهاراً لكشف المافيا.' },
+  jester:    { name:'المهرج',   icon:'🤡',  team:'neutral', teamLabel:'محايد',        desc:'تفوز إذا صوّت عليك البلد وأُقصيت.' },
+};
 
+const TEAM_CLASS = { mafia:'team-mafia', town:'team-town', neutral:'team-neutral' };
+
+/* ════════════════════════════════════════════════
+   PEER & CONNECTION STATE
+════════════════════════════════════════════════ */
+let peer = null;           // Our PeerJS peer
+let isHost = false;
+let hostConn = null;       // (player) connection to host
+let playerConns = {};      // (host) peerId -> DataConnection
+let myName = '';
+let myPeerId = '';
+let roomCode = '';         // 6-char code = host's peer ID prefix
+
+// Host: list of all players including self
+// { peerId, name, role, alive, protected, votes, connected }
+let hostPlayers = [];
+
+// Player: our state
+let myRole = null;
+let myPlayerIdx = null;
+let myAlive = true;
+let playerGameLog = [];
+let playerGameState = null; // last full state from host
+
+let rolesEnabled = { doctor:true, detective:true, godfather:false, jester:false };
+
+// Host game state
 let state = {
-  players: [],       // { name, role, alive, protected, votes }
+  players: [],
   round: 1,
-  phase: 'day',      // 'day' | 'night'
-  nightQueue: [],    // roles to act tonight
+  phase: 'day',
+  nightQueue: [],
   nightQueueIdx: 0,
-  nightActions: {},  // { mafia: idx, doctor: idx, detective: idx }
+  nightActions: {},
   selectedPlayer: null,
   log: [],
-  investigateShown: false,
 };
+let nightSelected = null;
+// For P2P night: track which roles have submitted
+let nightRoleResponses = {}; // role -> playerIdx target or null
 
-const ROLES = {
-  mafia:      { name: 'المافيا',   icon: '🔪', team: 'mafia',   teamLabel: 'فريق المافيا',   desc: 'اختر ليلاً لاعباً لتقتله مع زملائك.' },
-  godfather:  { name: 'العراب',    icon: '👑', team: 'mafia',   teamLabel: 'فريق المافيا',   desc: 'زعيم المافيا. تبدو بريئاً أمام المحقق.' },
-  doctor:     { name: 'الطبيب',    icon: '👨⚕', team: 'town', teamLabel: 'فريق القرية',  desc: 'اختر ليلاً لاعباً لحمايته من القتل.' },
-  detective:  { name: 'المحقق',    icon: '🕵', team: 'town', teamLabel: 'فريق القرية',  desc: 'اختر ليلاً لاعباً للتحقيق في هويته.' },
-  villager:   { name: 'القروي',    icon: '👨🌾', team: 'town', teamLabel: 'فريق القرية',  desc: 'لا قدرة خاصة. صوّت نهاراً لكشف المافيا.' },
-  jester:     { name: 'المهرج',    icon: '🤡', team: 'neutral', teamLabel: 'محايد',         desc: 'تفوز إذا صوّت عليك البلد وأُقصيت.' },
-};
+/* ════════════════════════════════════════════════
+   UI HELPERS
+════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
 
-const TEAM_CLASS = { mafia: 'team-mafia', town: 'team-town', neutral: 'team-neutral' };
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0 && t==='host') || (i===1 && t==='join')));
+  document.getElementById('tab-host').classList.toggle('active', t==='host');
+  document.getElementById('tab-join').classList.toggle('active', t==='join');
+}
 
-/* ═══════════════════════ SETUP ═══════════════════════ */
-function buildPlayerInputs() {
-  const c = document.getElementById('player-inputs');
-  c.innerHTML = '';
-  for (let i = 0; i < playerCount; i++) {
-    const row = document.createElement('div');
-    row.className = 'player-input-row';
-    row.innerHTML = `
-      <div class="player-num">${i + 1}</div>
-      <input type="text" placeholder="اسم اللاعب ${i + 1}" id="pname-${i}" />
-    `;
-    c.appendChild(row);
+/* ════════════════════════════════════════════════
+   PEERJS INITIALIZATION
+════════════════════════════════════════════════ */
+function initPeer(onReady) {
+  // Use PeerJS public cloud — no server needed
+  peer = new Peer(undefined, {
+    host: 'peerjs.com', port: 443, path: '/', secure: true,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ]
+    }
+  });
+
+  peer.on('open', (id) => {
+    myPeerId = id;
+    onReady(id);
+  });
+
+  peer.on('error', (err) => {
+    console.error('PeerJS error:', err);
+    updateStatus('host', 'error', 'خطأ في الاتصال: ' + err.type);
+    updateStatus('join', 'error', 'خطأ في الاتصال: ' + err.type);
+  });
+}
+
+function updateStatus(side, type, msg) {
+  const dot  = document.getElementById(side + '-status-dot');
+  const text = document.getElementById(side + '-status-text');
+  if (!dot || !text) return;
+  dot.className  = 'status-dot' + (type === 'connected' ? ' connected' : type === 'error' ? ' error' : '');
+  text.textContent = msg;
+}
+
+// Init peer on page load
+window.addEventListener('DOMContentLoaded', () => {
+  initPeer((id) => {
+    updateStatus('host', 'connected', 'جاهز — يمكنك إنشاء غرفة');
+    updateStatus('join', 'connected', 'جاهز — يمكنك الانضمام');
+    document.getElementById('create-room-btn').disabled = false;
+    document.getElementById('join-room-btn').disabled = false;
+  });
+});
+
+/* ════════════════════════════════════════════════
+   HOST: CREATE ROOM
+════════════════════════════════════════════════ */
+function createRoom() {
+  const name = document.getElementById('host-name-input').value.trim() || 'المضيف';
+  myName = name;
+  isHost = true;
+
+  // Room code: last 6 chars of peerId (alphanumeric) uppercased
+  roomCode = myPeerId.replace(/[^a-z0-9]/gi,'').slice(-6).toUpperCase();
+  if (roomCode.length < 4) roomCode = myPeerId.slice(0,6).toUpperCase();
+
+  // Add host as first player
+  hostPlayers = [{ peerId: myPeerId, name: myName, connected: true, isHost: true }];
+
+  document.getElementById('display-room-code').textContent = roomCode;
+  updateWaitingList();
+  showScreen('waiting');
+
+  // Listen for incoming connections
+  peer.on('connection', (conn) => {
+    conn.on('open', () => {
+      conn.on('data', (data) => handleHostReceive(conn, data));
+      conn.on('close', () => handlePlayerDisconnect(conn.peer));
+      // Send welcome + current player list
+      const existingNames = hostPlayers.map(p => p.name);
+      send(conn, { type:'welcome', players: existingNames });
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════
+   PLAYER: JOIN ROOM
+════════════════════════════════════════════════ */
+function joinRoom() {
+  const name = document.getElementById('join-name-input').value.trim() || 'لاعب';
+  const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+  if (code.length < 4) { alert('أدخل كود الغرفة الصحيح'); return; }
+
+  myName = name;
+  isHost = false;
+
+  showConnecting('جاري الاتصال بالغرفة...');
+
+  // We need to find the host's full peer ID
+  // Strategy: try the code as a suffix of common PeerJS IDs
+  // The host shares their last-6-char code; we stored full peerId in a side channel
+  // Simplest approach: host's "room" peer = their full peerId. We broadcast it differently.
+  // REVISED: We'll use the code directly as the peer ID to connect to. Host creates
+  // a SECOND named peer with the room code. Much simpler.
+
+  const conn = peer.connect('mafia-room-' + code, { reliable: true });
+  hostConn = conn;
+
+  conn.on('open', () => {
+    hideConnecting();
+    send(conn, { type:'join', name: myName });
+    conn.on('data', (data) => handlePlayerReceive(data));
+    conn.on('close', () => {
+      document.getElementById('player-conn-dot').className = 'status-dot error';
+      document.getElementById('player-conn-text').textContent = 'انقطع الاتصال';
+    });
+    showScreen('player');
+    document.getElementById('player-phase-title').textContent = '⌛ في انتظار بدء اللعبة';
+    document.getElementById('player-phase-desc').textContent = 'تم الانضمام — انتظر حتى يبدأ المضيف';
+  });
+
+  conn.on('error', (err) => {
+    hideConnecting();
+    alert('لم يتم العثور على الغرفة. تأكد من الكود وحاول مجدداً.');
+  });
+}
+
+/* ════════════════════════════════════════════════
+   HOST: CREATE NAMED ROOM PEER
+════════════════════════════════════════════════ */
+// Override createRoom to also create a named peer for joining
+function createRoom() {
+  const name = document.getElementById('host-name-input').value.trim() || 'المضيف';
+  myName = name;
+  isHost = true;
+
+  // Generate 6-char room code
+  roomCode = Math.random().toString(36).slice(2,8).toUpperCase();
+
+  // Create a named peer that players will connect to
+  const roomPeer = new Peer('mafia-room-' + roomCode, {
+    host: 'peerjs.com', port: 443, path: '/', secure: true,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ]
+    }
+  });
+
+  showConnecting('جاري إنشاء الغرفة...');
+
+  roomPeer.on('open', () => {
+    hideConnecting();
+    hostPlayers = [{ peerId: myPeerId, name: myName, connected: true, isHost: true }];
+    document.getElementById('display-room-code').textContent = roomCode;
+    updateWaitingList();
+    showScreen('waiting');
+
+    roomPeer.on('connection', (conn) => {
+      conn.on('open', () => {
+        conn.on('data', (data) => handleHostReceive(conn, data));
+        conn.on('close', () => handlePlayerDisconnect(conn.peer));
+        const existingNames = hostPlayers.map(p => p.name);
+        send(conn, { type:'welcome', players: existingNames });
+      });
+    });
+  });
+
+  roomPeer.on('error', (err) => {
+    hideConnecting();
+    if (err.type === 'unavailable-id') {
+      // Try again with new code
+      createRoom();
+    } else {
+      alert('خطأ في إنشاء الغرفة: ' + err.type);
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════
+   MESSAGING
+════════════════════════════════════════════════ */
+function send(conn, data) {
+  try { conn.send(data); } catch(e) { console.error('send error', e); }
+}
+
+function broadcast(data) {
+  Object.values(playerConns).forEach(conn => send(conn, data));
+}
+
+/* ════════════════════════════════════════════════
+   HOST: RECEIVE MESSAGES
+════════════════════════════════════════════════ */
+function handleHostReceive(conn, data) {
+  switch (data.type) {
+    case 'join': {
+      if (hostPlayers.find(p => p.peerId === conn.peer)) return;
+      playerConns[conn.peer] = conn;
+      hostPlayers.push({ peerId: conn.peer, name: data.name, connected: true });
+      // Notify all about updated player list
+      broadcastPlayerList();
+      updateWaitingList();
+      document.getElementById('start-game-btn').disabled = (hostPlayers.length < 3);
+      break;
+    }
+    case 'night_action': {
+      // Player submitted night action
+      const role = data.role;
+      nightRoleResponses[role] = data.target; // null = skip
+      checkNightActionsComplete();
+      break;
+    }
+    case 'vote': {
+      // Player cast a day vote
+      handlePlayerVote(conn.peer, data.target);
+      break;
+    }
   }
 }
 
-function changeCount(d) {
-  playerCount = Math.max(4, Math.min(12, playerCount + d));
-  document.getElementById('count-display').textContent = playerCount;
-  buildPlayerInputs();
+function handlePlayerDisconnect(peerId) {
+  const p = hostPlayers.find(p => p.peerId === peerId);
+  if (p) p.connected = false;
+  updateWaitingList();
+  renderPlayersGrid();
 }
 
+function broadcastPlayerList() {
+  const list = hostPlayers.map(p => ({ name:p.name }));
+  Object.values(playerConns).forEach(conn => send(conn, { type:'player_list', players: list }));
+}
+
+/* ════════════════════════════════════════════════
+   PLAYER: RECEIVE MESSAGES
+════════════════════════════════════════════════ */
+function handlePlayerReceive(data) {
+  switch (data.type) {
+    case 'welcome':
+      break;
+    case 'player_list':
+      break;
+    case 'role_assigned': {
+      myRole = data.role;
+      myPlayerIdx = data.playerIdx;
+      myAlive = true;
+      renderPlayerRoleCard(data);
+      break;
+    }
+    case 'game_state': {
+      playerGameState = data.state;
+      renderPlayerGameState(data.state);
+      break;
+    }
+    case 'night_prompt': {
+      if (data.role === myRole || (data.role === 'mafia' && (myRole === 'mafia' || myRole === 'godfather'))) {
+        showPlayerNightAction(data);
+      } else {
+        showPlayerWaiting('🌙 مرحلة الليل — انتظر حتى ينتهي كل دور');
+      }
+      break;
+    }
+    case 'night_done': {
+      hidePlayerNightAction();
+      break;
+    }
+    case 'day_vote': {
+      if (myAlive) showPlayerVotePanel(data.alivePlayers, data.votes);
+      break;
+    }
+    case 'vote_update': {
+      updatePlayerVotePanel(data.votes);
+      break;
+    }
+    case 'log': {
+      playerGameLog.push(data.entry);
+      renderPlayerLog();
+      break;
+    }
+    case 'game_over': {
+      showPlayerGameOver(data);
+      break;
+    }
+    case 'eliminated': {
+      if (data.playerIdx === myPlayerIdx) {
+        myAlive = false;
+        document.getElementById('eliminated-banner').style.display = 'block';
+        document.getElementById('player-vote-card').style.display = 'none';
+        document.getElementById('player-night-action').style.display = 'none';
+      }
+      break;
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════
+   WAITING ROOM
+════════════════════════════════════════════════ */
+function updateWaitingList() {
+  const list = document.getElementById('players-waiting-list');
+  const count = document.getElementById('player-count-waiting');
+  count.textContent = hostPlayers.length;
+  list.innerHTML = hostPlayers.map(p => `
+    <div class="waiting-player-row">
+      <div class="pip"></div>
+      <span>${p.name}</span>
+      ${p.isHost ? '<span class="host-tag">مضيف</span>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('start-game-btn').disabled = hostPlayers.length < 3;
+}
+
+function proceedToSetup() {
+  document.getElementById('setup-player-count').textContent = hostPlayers.length;
+  showScreen('setup');
+}
+
+/* ════════════════════════════════════════════════
+   SETUP SCREEN
+════════════════════════════════════════════════ */
 function toggleRole(r) {
   rolesEnabled[r] = !rolesEnabled[r];
-  const el = document.getElementById('toggle-' + r);
-  el.classList.toggle('on', rolesEnabled[r]);
+  document.getElementById('toggle-' + r).classList.toggle('on', rolesEnabled[r]);
 }
-
-buildPlayerInputs();
 
 function assignRoles(n) {
   let pool = [];
-  // Always at least 1 mafia
   const mafiaCount = Math.max(1, Math.floor(n / 4));
   let mafiaAdded = 0;
-
-  if (rolesEnabled.godfather && mafiaCount >= 1) {
-    pool.push('godfather');
-    mafiaAdded++;
-  }
-  while (mafiaAdded < mafiaCount) {
-    pool.push('mafia');
-    mafiaAdded++;
-  }
-
+  if (rolesEnabled.godfather && mafiaCount >= 1) { pool.push('godfather'); mafiaAdded++; }
+  while (mafiaAdded < mafiaCount) { pool.push('mafia'); mafiaAdded++; }
   if (rolesEnabled.doctor)    pool.push('doctor');
   if (rolesEnabled.detective) pool.push('detective');
   if (rolesEnabled.jester)    pool.push('jester');
-
   while (pool.length < n) pool.push('villager');
-  // Shuffle
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+  for (let i = pool.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
   }
   return pool;
 }
 
-function startGame() {
-  const names = [];
-  for (let i = 0; i < playerCount; i++) {
-    const v = document.getElementById('pname-' + i).value.trim();
-    names.push(v || `لاعب ${i + 1}`);
-  }
+function distributeRolesAndStart() {
+  const n = hostPlayers.length;
+  const roles = assignRoles(n);
 
-  const roles = assignRoles(playerCount);
-  state.players = names.map((name, i) => ({
-    name, role: roles[i], alive: true, protected: false, votes: 0
+  state.players = hostPlayers.map((p, i) => ({
+    name: p.name,
+    role: roles[i],
+    alive: true,
+    protected: false,
+    votes: 0,
+    peerId: p.peerId,
   }));
   state.round = 1;
   state.phase = 'day';
   state.log = [];
   state.nightActions = {};
 
-  // Start reveal flow
-  startReveal();
-}
+  // Find mafia members for revealing
+  const mafiaTeam = state.players
+    .filter(p => p.role === 'mafia' || p.role === 'godfather')
+    .map(p => p.name);
 
-/* ═══════════════════════ REVEAL ═══════════════════════ */
-let revealIdx = 0;
-let revealFlipped = false;
-
-function startReveal() {
-  revealIdx = 0;
-  revealFlipped = false;
-  showScreen('reveal');
-  showRevealCard();
-}
-
-function showRevealCard() {
-  const p = state.players[revealIdx];
-  const role = ROLES[p.role];
-  const card = document.getElementById('reveal-card');
-
-  // Reset to back
-  revealFlipped = false;
-  card.classList.remove('flipped');
-
-  document.getElementById('reveal-player-name').textContent = p.name;
-  document.getElementById('reveal-role-icon').textContent = role.icon;
-  document.getElementById('reveal-role-name').textContent = role.name;
-  document.getElementById('reveal-role-name').style.color = role.team === 'mafia' ? 'var(--crimson-light)' : role.team === 'neutral' ? 'var(--gold-light)' : 'var(--green-light)';
-  document.getElementById('reveal-role-team').textContent = role.teamLabel;
-  document.getElementById('reveal-role-team').className = 'role-team ' + TEAM_CLASS[role.team];
-  document.getElementById('reveal-role-desc').textContent = role.desc;
-
-  document.getElementById('reveal-progress').textContent = `${revealIdx + 1} / ${state.players.length}`;
-  document.getElementById('reveal-btn').textContent = 'اكشف الدور';
-  document.getElementById('reveal-next').style.display = 'none';
-  document.getElementById('reveal-btn').style.display = 'block';
-
-  // Last player hint
-  if (revealIdx === state.players.length - 1) {
-    document.getElementById('reveal-instruction').textContent = 'آخر لاعب — بعد الكشف تبدأ اللعبة!';
-  } else {
-    document.getElementById('reveal-instruction').textContent = 'مرروا الهاتف لكل لاعب على حدة ليكشف دوره بسرية';
-  }
-}
-
-function handleRevealBtn() {
-  if (!revealFlipped) {
-    revealFlipped = true;
-    document.getElementById('reveal-card').classList.add('flipped');
-    document.getElementById('reveal-btn').style.display = 'none';
-    document.getElementById('reveal-next').style.display = 'block';
-    if (revealIdx === state.players.length - 1) {
-      document.getElementById('reveal-next').textContent = 'ابدأ اللعبة ←';
+  // Send each player their role
+  state.players.forEach((p, idx) => {
+    const roleData = ROLES[p.role];
+    const msg = {
+      type: 'role_assigned',
+      role: p.role,
+      playerIdx: idx,
+      roleData: { name: roleData.name, icon: roleData.icon, team: roleData.team, teamLabel: roleData.teamLabel, desc: roleData.desc },
+      mafiaTeam: (p.role === 'mafia' || p.role === 'godfather') ? mafiaTeam : [],
+    };
+    if (p.peerId === myPeerId) {
+      // Host's own role
+      myRole = p.role;
+      myPlayerIdx = idx;
     } else {
-      document.getElementById('reveal-next').textContent = 'التالي ←';
+      const conn = playerConns[p.peerId];
+      if (conn) send(conn, msg);
     }
-  }
-}
+  });
 
-function nextReveal() {
-  revealIdx++;
-  if (revealIdx >= state.players.length) {
-    showScreen('game');
-    initGameUI();
-  } else {
-    showRevealCard();
-  }
-}
-
-/* ═══════════════════════ GAME INIT ═══════════════════════ */
-function initGameUI() {
+  // Start game
+  showScreen('game');
   renderPhaseHeader();
   renderPlayersGrid();
   renderPhasePanel();
+  broadcastGameState();
+}
+
+/* ════════════════════════════════════════════════
+   HOST GAME LOGIC
+════════════════════════════════════════════════ */
+function broadcastGameState() {
+  const publicState = {
+    players: state.players.map(p => ({ name:p.name, alive:p.alive, votes:p.votes })),
+    round: state.round,
+    phase: state.phase,
+    log: state.log,
+  };
+  Object.values(playerConns).forEach(conn => send(conn, { type:'game_state', state: publicState }));
+}
+
+function broadcastLog(text, cls) {
+  state.log.push({ text, cls });
   renderLog();
+  Object.values(playerConns).forEach(conn => send(conn, { type:'log', entry:{ text, cls } }));
 }
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
+function broadcastEliminated(idx) {
+  Object.values(playerConns).forEach(conn => send(conn, { type:'eliminated', playerIdx:idx }));
 }
 
-/* ═══════════════════════ RENDER ═══════════════════════ */
 function renderPhaseHeader() {
-  const pb = document.getElementById('phase-badge');
-  const rl = document.getElementById('round-label');
+  const badge = document.getElementById('phase-badge');
+  const round = document.getElementById('round-label');
   if (state.phase === 'day') {
-    pb.innerHTML = `<span class="phase-icon">☀</span><span class="day-badge">النهار — التصويت</span>`;
+    badge.className = 'phase-badge day-badge';
+    badge.innerHTML = '<span class="phase-icon">☀</span> النهار';
   } else {
-    pb.innerHTML = `<span class="phase-icon">🌙</span><span class="night-badge">الليل — العمليات السرية</span>`;
+    badge.className = 'phase-badge night-badge';
+    badge.innerHTML = '<span class="phase-icon">🌙</span> الليل';
   }
-  rl.textContent = `الجولة ${state.round}`;
+  round.textContent = 'الجولة ' + state.round;
 }
 
 function renderPlayersGrid() {
   const grid = document.getElementById('players-grid');
-  grid.innerHTML = '';
-  state.players.forEach((p, i) => {
-    const div = document.createElement('div');
-    div.className = 'player-card' + (p.alive ? '' : ' eliminated') + (p.protected && p.alive ? ' protected-card' : '');
-    if (state.selectedPlayer === i && p.alive) div.classList.add('selected');
-    if (p.alive) div.onclick = () => selectPlayer(i);
-    div.innerHTML = `
-      ${p.alive ? '<div class="status-pip"></div>' : ''}
-      <div class="player-avatar">${p.name.charAt(0)}</div>
-      <div class="player-card-name">${p.name}</div>
-      ${p.votes > 0 ? `<div class="vote-count">أصوات: ${p.votes}</div>` : ''}
+  grid.innerHTML = state.players.map((p, i) => {
+    const r = ROLES[p.role];
+    const sel = state.selectedPlayer === i ? 'selected' : '';
+    const dead = !p.alive ? 'eliminated' : '';
+    const conn = (p.peerId === myPeerId) ? 'connected' : (playerConns[p.peerId] && playerConns[p.peerId].open ? 'connected' : 'disconnected');
+    return `
+      <div class="player-card ${sel} ${dead}" onclick="selectPlayer(${i})">
+        <div class="status-pip ${conn}-pip"></div>
+        <div class="player-avatar">${r.icon}</div>
+        <div class="player-card-name">${p.name}</div>
+        <div class="player-card-role">${r.name}</div>
+        ${p.votes ? `<div style="font-size:11px;color:var(--crimson-light);">🗳 ${p.votes}</div>` : ''}
+      </div>
     `;
-    grid.appendChild(div);
-  });
+  }).join('');
 }
 
 function selectPlayer(i) {
   if (!state.players[i].alive) return;
-  state.selectedPlayer = (state.selectedPlayer === i) ? null : i;
+  state.selectedPlayer = state.selectedPlayer === i ? null : i;
   renderPlayersGrid();
+  renderPhasePanel();
 }
 
 function renderPhasePanel() {
-  const title = document.getElementById('panel-title');
-  const desc = document.getElementById('panel-desc');
+  const title   = document.getElementById('panel-title');
+  const desc    = document.getElementById('panel-desc');
   const actions = document.getElementById('panel-actions');
 
   if (state.phase === 'day') {
-    title.textContent = '☀ مرحلة النهار';
-    desc.textContent = 'ناقشوا وتبادلوا الاتهامات. عندما تصلون لاتفاق، صوّتوا لإقصاء أحد اللاعبين.';
-    const alive = state.players.filter(p => p.alive);
+    title.textContent = '☀ مرحلة النهار — نقاش وتصويت';
+    desc.textContent  = 'اللاعبون يتصلون من هواتفهم ويصوتون. يمكنك هنا إقصاء اللاعب بعد تجميع الأصوات.';
     actions.innerHTML = `
-      <div class="flex-row" style="flex-wrap:wrap;gap:10px;">
-        <button class="action-btn action-btn-red" onclick="voteOut()" id="vote-btn">
-          🗳 إقصاء اللاعب المحدد
-        </button>
-        <button class="action-btn action-btn-blue" onclick="goNight()">
-          🌙 ابدأ الليل
-        </button>
+      <div class="flex-row" style="flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        <button class="action-btn action-btn-red" onclick="hostStartDayVote()">🗳 فتح التصويت للاعبين</button>
+        <button class="action-btn action-btn-red" onclick="voteOutSelected()" id="vote-btn">⚡ إقصاء المحدد (يدوي)</button>
+        <button class="action-btn action-btn-blue" onclick="goNight()">🌙 ابدأ الليل</button>
       </div>
-      ${state.selectedPlayer !== null ? `<p style="font-size:12px;color:var(--gold-light);margin-top:10px;">محدد: ${state.players[state.selectedPlayer].name}</p>` : `<p style="font-size:12px;color:var(--text-dim);margin-top:10px;">اختر لاعباً من الأعلى للتصويت عليه</p>`}
+      ${state.selectedPlayer !== null
+        ? `<p style="font-size:12px;color:var(--gold-light);">محدد: ${state.players[state.selectedPlayer].name}</p>`
+        : `<p style="font-size:12px;color:var(--text-dim);">اضغط على لاعب في الأعلى لتحديده</p>`}
     `;
   } else {
     title.textContent = '🌙 مرحلة الليل';
-    desc.textContent = 'أغمضوا أعينكم. سيتحرك كل دور بدوره في السر.';
+    desc.textContent  = 'أغمضوا أعينكم. سيتحرك كل دور بدوره عبر هاتفه الشخصي.';
     actions.innerHTML = `
-      <button class="action-btn action-btn-blue" onclick="startNightPhase()">
-        🌙 ابدأ عمليات الليل
-      </button>
+      <button class="action-btn action-btn-blue" onclick="startNightPhase()">🌙 ابدأ عمليات الليل</button>
     `;
   }
 }
 
-function renderLog() {
-  const log = document.getElementById('event-log');
-  if (state.log.length === 0) {
-    log.innerHTML = '<div class="log-entry" style="color:var(--text-dim);">لم تبدأ الأحداث بعد...</div>';
-    return;
-  }
-  log.innerHTML = state.log.slice().reverse().map(e =>
-    `<div class="log-entry ${e.cls || ''}">${e.text}</div>`
-  ).join('');
+/* ─── DAY VOTING ─── */
+let dayVotes = {}; // peerId -> targetIdx
+let dayVoteOpen = false;
+
+function hostStartDayVote() {
+  dayVotes = {};
+  dayVoteOpen = true;
+  state.players.forEach(p => p.votes = 0);
+  const alivePlayers = state.players
+    .filter(p => p.alive)
+    .map((p, _) => ({ name: p.name, idx: state.players.indexOf(p) }));
+  Object.values(playerConns).forEach(conn => {
+    send(conn, { type:'day_vote', alivePlayers, votes: buildVoteSummary() });
+  });
+  renderPlayersGrid();
+  renderPhasePanel();
 }
 
-function addLog(text, cls) {
-  state.log.push({ text, cls });
-  renderLog();
+function buildVoteSummary() {
+  return state.players.map((p, i) => ({ name:p.name, votes:p.votes }));
 }
 
-/* ═══════════════════════ DAY ACTIONS ═══════════════════════ */
-function voteOut() {
+function handlePlayerVote(peerId, targetIdx) {
+  if (!dayVoteOpen) return;
+  // Remove previous vote
+  const prev = dayVotes[peerId];
+  if (prev !== undefined && state.players[prev]) state.players[prev].votes = Math.max(0, state.players[prev].votes - 1);
+  dayVotes[peerId] = targetIdx;
+  if (state.players[targetIdx]) state.players[targetIdx].votes++;
+  // Broadcast updated vote counts
+  Object.values(playerConns).forEach(conn => send(conn, { type:'vote_update', votes: buildVoteSummary() }));
+  renderPlayersGrid();
+}
+
+function voteOutSelected() {
   if (state.selectedPlayer === null) return;
-  const p = state.players[state.selectedPlayer];
-  if (!p.alive) return;
-
-  p.alive = false;
-  addLog(`🗳 صوّت البلد على إقصاء ${p.name} (${ROLES[p.role].name} ${ROLES[p.role].icon})`, 'log-red');
-
-  // Jester win
-  if (p.role === 'jester') {
-    endGame('jester', p.name);
-    return;
-  }
-
-  state.selectedPlayer = null;
-  state.phase = 'night';
-  state.round++;
-
-  checkWin();
+  eliminatePlayer(state.selectedPlayer, 'vote');
 }
 
-function goNight() {
+function eliminatePlayer(idx, method) {
+  const p = state.players[idx];
+  if (!p.alive) return;
+  p.alive = false;
+  dayVoteOpen = false;
+  broadcastEliminated(idx);
+  broadcastLog(`🗳 أُقصي ${p.name} (${ROLES[p.role].name} ${ROLES[p.role].icon})`, 'log-red');
+
+  if (p.role === 'jester') { endGame('jester', p.name); return; }
+
   state.selectedPlayer = null;
   state.phase = 'night';
   state.round++;
   renderPhaseHeader();
   renderPlayersGrid();
   renderPhasePanel();
+  broadcastGameState();
+  checkWin();
 }
 
-/* ═══════════════════════ NIGHT PHASE ═══════════════════════ */
-let nightSelected = null;
+function goNight() {
+  dayVoteOpen = false;
+  state.selectedPlayer = null;
+  state.phase = 'night';
+  state.round++;
+  renderPhaseHeader();
+  renderPlayersGrid();
+  renderPhasePanel();
+  broadcastGameState();
+}
 
+/* ─── NIGHT PHASE ─── */
 function buildNightQueue() {
   const queue = [];
   const hasRole = (r) => state.players.some(p => p.alive && p.role === r);
@@ -1206,202 +1647,439 @@ function startNightPhase() {
   state.nightQueue = buildNightQueue();
   state.nightQueueIdx = 0;
   state.nightActions = {};
+  nightRoleResponses = {};
   nightSelected = null;
-  // Reset protection
   state.players.forEach(p => p.protected = false);
 
-  if (state.nightQueue.length === 0) {
-    resolveNight();
-    return;
-  }
-  showNightModal(state.nightQueue[0]);
+  if (state.nightQueue.length === 0) { resolveNight(); return; }
+  processNightRole(state.nightQueue[0]);
 }
 
-function showNightModal(role) {
+function processNightRole(role) {
+  // Check if any alive player has this role and is NOT the host
+  const rolePlayers = state.players.filter(p => p.alive && (
+    (role === 'mafia' && (p.role === 'mafia' || p.role === 'godfather')) ||
+    (role !== 'mafia' && p.role === role)
+  ));
+
+  const alivePlayers = state.players
+    .filter(p => p.alive)
+    .filter(p => !(role === 'mafia' && (p.role === 'mafia' || p.role === 'godfather'))) // mafia can't target self
+    .map((p, _) => ({ name: p.name, idx: state.players.indexOf(p) }));
+
+  // Send night prompt to relevant player(s)
+  rolePlayers.forEach(rp => {
+    if (rp.peerId === myPeerId) {
+      // Host is the role player — show local modal
+      showNightModal(role);
+    } else {
+      const conn = playerConns[rp.peerId];
+      if (conn) send(conn, { type:'night_prompt', role, alivePlayers });
+    }
+  });
+
+  // Also update host overlay (always shown for game master view)
+  showNightModalHost(role, rolePlayers.some(p => p.peerId === myPeerId));
+}
+
+// HOST GAME MASTER VIEW of night (just shows waiting unless host has a role)
+let hostIsNightActor = false;
+
+function showNightModalHost(role, hostIsActor) {
+  hostIsNightActor = hostIsActor;
   const overlay = document.getElementById('night-overlay');
   overlay.classList.add('active');
   nightSelected = null;
-  document.getElementById('investigate-result').style.display = 'none';
   document.getElementById('night-confirm-btn').disabled = true;
 
-  // Role indicator
   const ind = document.getElementById('night-role-indicator');
   ind.innerHTML = state.nightQueue.map((r, i) => {
     let cls = '';
     if (i < state.nightQueueIdx) cls = 'done';
     else if (i === state.nightQueueIdx) cls = 'current';
-    return `<div class="nri-dot ${cls}" title="${ROLES[r === 'mafia' ? 'mafia' : r].name}"></div>`;
+    return `<div class="nri-dot ${cls}"></div>`;
   }).join('');
 
   const titleEl = document.getElementById('night-modal-title');
   const descEl  = document.getElementById('night-modal-desc');
   const list    = document.getElementById('night-modal-list');
+  const waiting = document.getElementById('night-waiting-msg');
+  const actionsDiv = document.getElementById('night-modal-actions');
 
-  const alivePlayers = state.players.filter(p => p.alive);
+  const labels = { mafia:'🔪 دور المافيا', doctor:'👨⚕ دور الطبيب', detective:'🕵 دور المحقق' };
+  const descs  = {
+    mafia: 'المافيا تختار ضحيتها عبر هواتفهم.',
+    doctor: 'الطبيب يختار من يحميه عبر هاتفه.',
+    detective: 'المحقق يختار من يحقق معه.',
+  };
+  titleEl.textContent = labels[role] || role;
+  descEl.textContent  = descs[role] || '';
 
-  if (role === 'mafia') {
-    titleEl.textContent = '🔪 دور المافيا';
-    titleEl.style.color = 'var(--crimson-light)';
-    descEl.textContent = 'أيقظوا المافيا فقط بصمت. اختاروا ضحيتكم الليلة.';
-    document.getElementById('night-skip-btn').style.display = 'none';
-  } else if (role === 'doctor') {
-    titleEl.textContent = '👨⚕ دور الطبيب';
-    titleEl.style.color = 'var(--green-light)';
-    descEl.textContent = 'أيقظ الطبيب فقط. اختر لاعباً لحمايته الليلة.';
-    document.getElementById('night-skip-btn').style.display = 'inline-flex';
-  } else if (role === 'detective') {
-    titleEl.textContent = '🕵 دور المحقق';
-    titleEl.style.color = 'var(--blue-light)';
-    descEl.textContent = 'أيقظ المحقق فقط. اختر لاعباً لتحقيق في هويته.';
-    document.getElementById('night-skip-btn').style.display = 'inline-flex';
-  }
-
-  list.innerHTML = '';
-  alivePlayers.forEach((p, _) => {
-    const actualIdx = state.players.indexOf(p);
-    if (role === 'mafia' && (p.role === 'mafia' || p.role === 'godfather')) return; // can't kill own team
-    const btn = document.createElement('button');
-    btn.className = 'modal-player-btn';
-    btn.textContent = p.name;
-    btn.onclick = () => {
-      document.querySelectorAll('.modal-player-btn').forEach(b => b.classList.remove('selected-modal'));
-      btn.classList.add('selected-modal');
-      nightSelected = actualIdx;
-      document.getElementById('night-confirm-btn').disabled = false;
-
-      if (role === 'detective') {
-        const isMafia = p.role === 'mafia'; // godfather appears innocent
-        const res = document.getElementById('investigate-result');
-        res.style.display = 'block';
-        if (isMafia) {
-          res.className = 'investigate-result mafia-result';
-          res.textContent = `⚠ ${p.name} — عضو مافيا!`;
-        } else {
-          res.className = 'investigate-result innocent-result';
-          res.textContent = `✅ ${p.name} — بريء.`;
+  if (hostIsActor) {
+    // Host gets to pick
+    waiting.style.display = 'none';
+    actionsDiv.style.display = 'flex';
+    list.innerHTML = '';
+    const alivePlayers = state.players.filter(p => p.alive);
+    alivePlayers.forEach(p => {
+      if (role === 'mafia' && (p.role === 'mafia' || p.role === 'godfather')) return;
+      const actualIdx = state.players.indexOf(p);
+      const btn = document.createElement('button');
+      btn.className = 'modal-player-btn';
+      btn.textContent = p.name;
+      btn.onclick = () => {
+        document.querySelectorAll('.modal-player-btn').forEach(b => b.classList.remove('selected-modal'));
+        btn.classList.add('selected-modal');
+        nightSelected = actualIdx;
+        document.getElementById('night-confirm-btn').disabled = false;
+        if (role === 'detective') {
+          const isMafia = p.role === 'mafia';
+          showInvestigateResult(p.name, isMafia);
         }
-      }
-    };
-    list.appendChild(btn);
-  });
+      };
+      list.appendChild(btn);
+    });
+    document.getElementById('night-skip-btn').style.display = (role === 'doctor' || role === 'detective') ? 'inline-flex' : 'none';
+  } else {
+    // Host is game master watching
+    list.innerHTML = '';
+    waiting.style.display = 'block';
+    document.getElementById('night-waiting-text').textContent = 'في انتظار اللاعب...';
+    actionsDiv.style.display = 'none';
+  }
 }
 
-function nightSkip() {
-  nightSelected = null;
-  nightNext();
+function showInvestigateResult(name, isMafia) {
+  // We don't show investigate result on host screen (privacy); player sees it
 }
 
-function nightConfirm() {
-  const role = state.nightQueue[state.nightQueueIdx];
-  if (nightSelected !== null) {
-    state.nightActions[role] = nightSelected;
+function hostNightSkip() {
+  if (hostIsNightActor) {
+    nightRoleResponses[state.nightQueue[state.nightQueueIdx]] = null;
   }
   nightNext();
+}
+
+function hostNightConfirm() {
+  if (hostIsNightActor && nightSelected !== null) {
+    nightRoleResponses[state.nightQueue[state.nightQueueIdx]] = nightSelected;
+  }
+  nightNext();
+}
+
+function checkNightActionsComplete() {
+  // When a player submits, we auto-advance
+  const role = state.nightQueue[state.nightQueueIdx];
+  if (role in nightRoleResponses) {
+    state.nightActions[role] = nightRoleResponses[role];
+    nightNext();
+  }
 }
 
 function nightNext() {
-  state.nightQueueIdx++;
   document.getElementById('night-overlay').classList.remove('active');
   nightSelected = null;
 
+  // Notify players this role is done
+  Object.values(playerConns).forEach(conn => send(conn, { type:'night_done' }));
+
+  state.nightQueueIdx++;
   if (state.nightQueueIdx < state.nightQueue.length) {
-    setTimeout(() => showNightModal(state.nightQueue[state.nightQueueIdx]), 300);
+    setTimeout(() => processNightRole(state.nightQueue[state.nightQueueIdx]), 300);
   } else {
     resolveNight();
   }
 }
 
 function resolveNight() {
-  // Doctor protection
-  if (state.nightActions['doctor'] !== undefined) {
+  if (state.nightActions['doctor'] !== undefined && state.nightActions['doctor'] !== null) {
     const didx = state.nightActions['doctor'];
     state.players[didx].protected = true;
-    addLog(`👨⚕ الطبيب وضع حراسة على ${state.players[didx].name}`, 'log-green');
+    broadcastLog(`👨⚕ الطبيب وضع حراسة على ${state.players[didx].name}`, 'log-green');
   }
 
-  // Mafia kill
-  if (state.nightActions['mafia'] !== undefined) {
+  if (state.nightActions['mafia'] !== undefined && state.nightActions['mafia'] !== null) {
     const midx = state.nightActions['mafia'];
     const target = state.players[midx];
     if (target.protected) {
-      addLog(`🛡 حاولت المافيا قتل ${target.name} لكن الطبيب أنقذه!`, 'log-green');
+      broadcastLog(`🛡 حاولت المافيا قتل ${target.name} لكن الطبيب أنقذه!`, 'log-green');
     } else {
       target.alive = false;
-      addLog(`🔪 وُجد ${target.name} قتيلاً في الصباح! (${ROLES[target.role].name})`, 'log-red');
+      broadcastEliminated(midx);
+      broadcastLog(`🔪 وُجد ${target.name} قتيلاً في الصباح! (${ROLES[target.role].name})`, 'log-red');
     }
   }
 
   if (state.nightActions['detective'] !== undefined) {
-    addLog(`🕵 أجرى المحقق تحقيقاً ليلياً`, 'log-gold');
+    broadcastLog(`🕵 أجرى المحقق تحقيقاً ليلياً`, 'log-gold');
   }
 
-  // Back to day
   state.phase = 'day';
   state.selectedPlayer = null;
   renderPhaseHeader();
   renderPlayersGrid();
   renderPhasePanel();
   renderLog();
-
+  broadcastGameState();
   checkWin();
 }
 
-/* ═══════════════════════ WIN CHECK ═══════════════════════ */
 function checkWin() {
   const alive = state.players.filter(p => p.alive);
   const aliveMafia = alive.filter(p => p.role === 'mafia' || p.role === 'godfather').length;
   const aliveTown  = alive.filter(p => p.role !== 'mafia' && p.role !== 'godfather').length;
-
-  if (aliveMafia === 0) {
-    endGame('town');
-    return;
-  }
-  if (aliveMafia >= aliveTown) {
-    endGame('mafia');
-    return;
-  }
+  if (aliveMafia === 0) { endGame('town'); return; }
+  if (aliveMafia >= aliveTown) { endGame('mafia'); return; }
 }
 
 function endGame(winner, jesterName) {
-  const icon   = document.getElementById('win-icon');
-  const title  = document.getElementById('win-title');
-  const desc   = document.getElementById('win-desc');
-  const list   = document.getElementById('final-roles-list');
+  const gameOverMsg = { type:'game_over', winner, jesterName, players: state.players.map(p => ({ name:p.name, role:p.role, alive:p.alive })) };
+  Object.values(playerConns).forEach(conn => send(conn, gameOverMsg));
+
+  const icon  = document.getElementById('win-icon');
+  const title = document.getElementById('win-title');
+  const desc  = document.getElementById('win-desc');
+  const list  = document.getElementById('final-roles-list');
 
   if (winner === 'town') {
-    icon.textContent  = '🏆';
+    icon.textContent = '🏆';
     title.textContent = 'فازت القرية!';
     title.style.color = 'var(--green-light)';
     desc.textContent  = 'كشف أبناء القرية المافيا وانتصرت العدالة.';
   } else if (winner === 'mafia') {
-    icon.textContent  = '💀';
+    icon.textContent = '💀';
     title.textContent = 'فازت المافيا!';
     title.style.color = 'var(--crimson-light)';
     desc.textContent  = 'سيطرت المافيا على القرية. أطفأوا الأنوار.';
   } else if (winner === 'jester') {
-    icon.textContent  = '🤡';
+    icon.textContent = '🤡';
     title.textContent = 'فاز المهرج!';
     title.style.color = 'var(--gold-light)';
-    desc.textContent  = `نجح ${jesterName} في خداع القرية وأقصوه! هذا ما أراده.`;
+    desc.textContent  = `نجح ${jesterName} في خداع القرية!`;
   }
 
   list.innerHTML = state.players.map(p => {
     const r = ROLES[p.role];
-    return `
-      <div class="roles-reveal-item">
-        <span style="font-size:20px;">${r.icon}</span>
-        <span class="rri-name">${p.name}</span>
-        <span class="rri-role">${r.name} ${p.alive ? '' : '— مقصى'}</span>
-      </div>
-    `;
+    return `<div class="roles-reveal-item">
+      <span style="font-size:20px;">${r.icon}</span>
+      <span class="rri-name">${p.name}</span>
+      <span class="rri-role">${r.name} ${p.alive ? '' : '— مقصى'}</span>
+    </div>`;
   }).join('');
 
   showScreen('win');
 }
 
+function renderLog() {
+  const log = document.getElementById('event-log');
+  if (state.log.length === 0) {
+    log.innerHTML = '<div class="log-entry" style="color:var(--text-dim);">لم تبدأ الأحداث بعد...</div>';
+    return;
+  }
+  log.innerHTML = state.log.slice().reverse().map(e =>
+    `<div class="log-entry ${e.cls||''}">${e.text}</div>`
+  ).join('');
+}
+
+function showNightModal(role) { /* handled by showNightModalHost */ }
+
 function restartGame() {
-  state = { players: [], round: 1, phase: 'day', nightQueue: [], nightQueueIdx: 0, nightActions: {}, selectedPlayer: null, log: [], investigateShown: false };
-  showScreen('setup');
+  location.reload();
+}
+
+/* ════════════════════════════════════════════════
+   PLAYER SCREEN RENDERING
+════════════════════════════════════════════════ */
+function renderPlayerRoleCard(data) {
+  const rd = data.roleData;
+  document.getElementById('pr-icon').textContent = rd.icon;
+  document.getElementById('pr-name').textContent = rd.name;
+  document.getElementById('pr-team').textContent = rd.teamLabel;
+  document.getElementById('pr-team').className   = 'role-team-badge ' + TEAM_CLASS[rd.team];
+  document.getElementById('pr-desc').textContent = rd.desc;
+
+  if (data.mafiaTeam && data.mafiaTeam.length > 0) {
+    const box = document.getElementById('mafia-team-box');
+    box.style.display = 'block';
+    document.getElementById('mafia-team-members').innerHTML =
+      data.mafiaTeam.map(n => `<div class="mt-member">🔪 ${n}</div>`).join('');
+  }
+}
+
+function renderPlayerGameState(gs) {
+  const phase = gs.phase;
+  const pTitle = document.getElementById('player-phase-title');
+  const pDesc  = document.getElementById('player-phase-desc');
+  if (phase === 'day') {
+    pTitle.textContent = '☀ النهار — نقاش وتصويت';
+    pDesc.textContent  = 'ناقشوا من بينكم من قد يكون المافيا. المضيف سيفتح التصويت.';
+  } else {
+    pTitle.textContent = '🌙 الليل';
+    pDesc.textContent  = 'أغمضوا أعينكم. انتظر دورك.';
+  }
+  // Update log
+  playerGameLog = gs.log || [];
+  renderPlayerLog();
+}
+
+function showPlayerNightAction(data) {
+  const card = document.getElementById('player-night-action');
+  card.style.display = 'block';
+  document.getElementById('player-phase-card').style.display = 'none';
+  document.getElementById('player-vote-card').style.display = 'none';
+
+  const roleLabels = { mafia:'🔪 دورك — اختر الضحية', doctor:'👨⚕ دورك — اختر من تحميه', detective:'🕵 دورك — اختر من تحقق معه' };
+  const roleDescs  = {
+    mafia: 'اختر لاعباً تريد المافيا قتله الليلة.',
+    doctor: 'اختر لاعباً تحميه من هجوم المافيا.',
+    detective: 'اختر لاعباً للتحقيق في هويته.',
+  };
+
+  document.getElementById('pna-title').textContent = roleLabels[data.role] || '';
+  document.getElementById('pna-desc').textContent  = roleDescs[data.role] || '';
+
+  const list = document.getElementById('pna-player-list');
+  list.innerHTML = '';
+  let selectedTarget = null;
+
+  data.alivePlayers.forEach(ap => {
+    const btn = document.createElement('button');
+    btn.className = 'action-player-btn';
+    btn.textContent = ap.name;
+    btn.onclick = () => {
+      document.querySelectorAll('.action-player-btn').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      selectedTarget = ap.idx;
+      document.getElementById('pna-confirm-btn').disabled = false;
+      if (data.role === 'detective') {
+        // We don't know the role — host will tell us
+        document.getElementById('pna-result').style.display = 'none';
+      }
+    };
+    list.appendChild(btn);
+  });
+
+  document.getElementById('pna-confirm-btn').disabled = true;
+  document.getElementById('pna-waiting').style.display = 'none';
+  document.getElementById('pna-result').style.display = 'none';
+
+  const skipBtn = document.getElementById('pna-skip-btn');
+  skipBtn.style.display = (data.role === 'doctor' || data.role === 'detective') ? 'inline-flex' : 'none';
+
+  window._nightRole = data.role;
+  window._nightGetTarget = () => selectedTarget;
+
+  if (data.role === 'detective' && selectedTarget !== null) {
+    // Detective gets local result from game state (approximation; host can also send it)
+  }
+}
+
+function sendNightAction() {
+  const target = window._nightGetTarget ? window._nightGetTarget() : null;
+  send(hostConn, { type:'night_action', role: window._nightRole, target });
+  document.getElementById('pna-confirm-btn').disabled = true;
+  document.getElementById('pna-skip-btn').style.display = 'none';
+  document.getElementById('pna-waiting').style.display = 'block';
+}
+
+function sendNightSkip() {
+  send(hostConn, { type:'night_action', role: window._nightRole, target: null });
+  document.getElementById('pna-confirm-btn').disabled = true;
+  document.getElementById('pna-skip-btn').style.display = 'none';
+  document.getElementById('pna-waiting').style.display = 'block';
+}
+
+function hidePlayerNightAction() {
+  document.getElementById('player-night-action').style.display = 'none';
+  document.getElementById('player-phase-card').style.display = 'block';
+  document.getElementById('pna-waiting').style.display = 'none';
+}
+
+function showPlayerWaiting(msg) {
+  document.getElementById('player-night-action').style.display = 'none';
+  document.getElementById('player-phase-card').style.display = 'block';
+  document.getElementById('player-phase-title').textContent = msg;
+  document.getElementById('player-phase-desc').textContent = '';
+}
+
+let myVoteTarget = null;
+
+function showPlayerVotePanel(alivePlayers, votes) {
+  const card = document.getElementById('player-vote-card');
+  if (!myAlive) return;
+  card.style.display = 'block';
+  myVoteTarget = null;
+  document.getElementById('cast-vote-btn').disabled = true;
+  document.getElementById('vote-waiting').style.display = 'none';
+  renderPlayerVoteList(alivePlayers, votes);
+}
+
+function renderPlayerVoteList(alivePlayers, votes) {
+  const list = document.getElementById('vote-player-list');
+  list.innerHTML = '';
+  alivePlayers.forEach(ap => {
+    const vCount = (votes && votes[ap.idx]) ? votes[ap.idx] : (votes ? votes.find(v => v.name === ap.name)?.votes || 0 : 0);
+    const btn = document.createElement('button');
+    btn.className = 'action-player-btn';
+    btn.innerHTML = `${ap.name} <span style="color:var(--crimson-light);font-size:11px;margin-right:auto;">${vCount > 0 ? '🗳 ' + vCount : ''}</span>`;
+    btn.onclick = () => {
+      document.querySelectorAll('#vote-player-list .action-player-btn').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      myVoteTarget = ap.idx;
+      document.getElementById('cast-vote-btn').disabled = false;
+    };
+    list.appendChild(btn);
+  });
+}
+
+function updatePlayerVotePanel(votes) {
+  // Update vote counts in the list
+  const btns = document.querySelectorAll('#vote-player-list .action-player-btn');
+  btns.forEach((btn, i) => {
+    const v = votes && votes[i] ? votes[i].votes : 0;
+    // Simple update: re-render is handled by showPlayerVotePanel
+  });
+}
+
+function castVote() {
+  if (myVoteTarget === null) return;
+  send(hostConn, { type:'vote', target: myVoteTarget });
+  document.getElementById('cast-vote-btn').disabled = true;
+  document.getElementById('vote-waiting').style.display = 'block';
+}
+
+function renderPlayerLog() {
+  const log = document.getElementById('player-event-log');
+  if (playerGameLog.length === 0) {
+    log.innerHTML = '<div class="log-entry" style="color:var(--text-dim);">لم تبدأ الأحداث بعد...</div>';
+    return;
+  }
+  log.innerHTML = playerGameLog.slice().reverse().map(e =>
+    `<div class="log-entry ${e.cls||''}">${e.text}</div>`
+  ).join('');
+}
+
+function showPlayerGameOver(data) {
+  const pTitle = document.getElementById('player-phase-title');
+  const pDesc  = document.getElementById('player-phase-desc');
+  document.getElementById('player-vote-card').style.display = 'none';
+  document.getElementById('player-night-action').style.display = 'none';
+  document.getElementById('player-phase-card').style.display = 'block';
+
+  const winLabels = { town:'🏆 فازت القرية!', mafia:'💀 فازت المافيا!', jester:'🤡 فاز المهرج!' };
+  pTitle.textContent = winLabels[data.winner] || 'انتهت اللعبة';
+  pDesc.textContent  = data.winner === 'jester' ? `فاز ${data.jesterName}` : '';
+}
+
+/* ════════════════════════════════════════════════
+   CONNECTING OVERLAY
+════════════════════════════════════════════════ */
+function showConnecting(msg) {
+  document.getElementById('connecting-msg').textContent = msg;
+  document.getElementById('connecting-overlay').classList.remove('hidden');
+}
+function hideConnecting() {
+  document.getElementById('connecting-overlay').classList.add('hidden');
 }
 </script>
 </body>
