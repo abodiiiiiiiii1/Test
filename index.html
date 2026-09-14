@@ -751,11 +751,10 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 
     <!-- ── Normal login (hidden until setup is done) ── -->
     <div id="login-step">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-        <label class="login-label" style="margin-bottom:0;">Select Store</label>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <span style="font-family:var(--font-serif); font-size:18px; font-weight:300; color:var(--gold); letter-spacing:0.08em;" id="store-display-name">Gravity</span>
         <button onclick="showSetup()" style="background:none; border:none; color:var(--gold-dim); font-size:10px; letter-spacing:0.06em; cursor:pointer; font-family:var(--font-sans); text-decoration:underline; text-underline-offset:3px; padding:0;">⚙ Change Network</button>
       </div>
-      <select class="store-select" id="store-select"><option value="">Loading…</option></select>
       <label class="pin-label">Enter PIN</label>
       <div class="pin-dots" id="pin-dots">
         <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
@@ -1315,7 +1314,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         ⚠ Reset Entire Database
       </button>
       <div style="font-size:11px; color:var(--white-dim); margin-top:8px; line-height:1.6;">
-        Clears all transactions and restores seed data on the host. Propagates to all connected peers.
+        Clears all data (products, customers, transactions, staff, recipes) on the host. Propagates to all connected peers.
       </div>
     </div>
   </div>
@@ -1349,37 +1348,13 @@ let shiftStart = null, shiftInterval = null;
 const SEED_DB = {
   meta: { version: 1, lastSync: new Date().toISOString() },
   stores: [
-    { id: 'store-001', name: 'Gravity — Mayfair',    location: 'London, UK'    },
-    { id: 'store-002', name: 'Gravity — 5th Avenue', location: 'New York, USA' },
-    { id: 'store-003', name: 'Gravity — Ginza',      location: 'Tokyo, JP'     }
+    { id: 'store-001', name: 'Gravity', location: '' }
   ],
-  products: [
-    { id: 'p001', sku: 'GRV-001', name: 'Obsidian Tote',       category: 'Bags',        price: 2800, costPrice: 820,  stock: 12, image: '🖤' },
-    { id: 'p002', sku: 'GRV-002', name: 'Silk Scarf Noir',     category: 'Accessories', price: 650,  costPrice: 120,  stock: 34, image: '🪬' },
-    { id: 'p003', sku: 'GRV-003', name: 'Cashmere Overcoat',   category: 'Outerwear',   price: 4200, costPrice: 1400, stock: 6,  image: '🧥' },
-    { id: 'p004', sku: 'GRV-004', name: 'Velvet Evening Bag',  category: 'Bags',        price: 1950, costPrice: 560,  stock: 9,  image: '👜' },
-    { id: 'p005', sku: 'GRV-005', name: 'Gold Cuff Bracelet',  category: 'Jewellery',   price: 3400, costPrice: 980,  stock: 5,  image: '⭕' },
-    { id: 'p006', sku: 'GRV-006', name: 'Leather Gloves',      category: 'Accessories', price: 480,  costPrice: 130,  stock: 20, image: '🧤' },
-    { id: 'p007', sku: 'GRV-007', name: 'Suede Loafers',       category: 'Footwear',    price: 1100, costPrice: 340,  stock: 14, image: '👞' },
-    { id: 'p008', sku: 'GRV-008', name: 'Merino Wrap',         category: 'Accessories', price: 890,  costPrice: 210,  stock: 18, image: '🧣' },
-    { id: 'p009', sku: 'GRV-009', name: 'Crystal Hairpin Set', category: 'Accessories', price: 320,  costPrice: 80,   stock: 40, image: '✨' },
-    { id: 'p010', sku: 'GRV-010', name: 'Lambskin Wallet',     category: 'Accessories', price: 740,  costPrice: 195,  stock: 22, image: '💳' },
-    { id: 'p011', sku: 'GRV-011', name: 'Satin Heels',         category: 'Footwear',    price: 1350, costPrice: 420,  stock: 8,  image: '👠' },
-    { id: 'p012', sku: 'GRV-012', name: 'Pearl Earrings',      category: 'Jewellery',   price: 2100, costPrice: 610,  stock: 11, image: '🔘' }
-  ],
-  customers: [
-    { id: 'c001', name: 'Isabelle Fontaine', email: 'i.fontaine@email.com', phone: '+44 7700 900123', tier: 'Noir',     totalSpend: 28400, visits: 14, loyaltyPoints: 284 },
-    { id: 'c002', name: 'Marcus Chen',       email: 'm.chen@email.com',     phone: '+1 212 555 0191', tier: 'Obsidian', totalSpend: 67200, visits: 31, loyaltyPoints: 672 },
-    { id: 'c003', name: 'Sophia Adeyemi',    email: 's.adeyemi@email.com',  phone: '+44 7911 223344', tier: 'Platinum', totalSpend: 12800, visits: 7,  loyaltyPoints: 128 },
-    { id: 'c004', name: 'Riku Tanaka',       email: 'r.tanaka@email.com',   phone: '+81 3 1234 5678', tier: 'Noir',     totalSpend: 19600, visits: 9,  loyaltyPoints: 196 }
-  ],
+  products: [],
+  customers: [],
   transactions: [],
   recipes: [],
-  staff: [
-    { id: 'staff-001', name: 'Amélie Rousseau', pin: '1234', role: 'Manager',   storeId: 'store-001' },
-    { id: 'staff-002', name: 'James Hartley',   pin: '5678', role: 'Associate', storeId: 'store-001' },
-    { id: 'staff-003', name: 'Yuki Mori',       pin: '9012', role: 'Associate', storeId: 'store-003' }
-  ]
+  staff: []
 };
 
 let p2pMode    = null;   // 'host' | 'peer'
@@ -1506,8 +1481,11 @@ function api(path, method = 'GET', body = null) {
       }
       const result = applyMutation({ resource, method, id, body });
       broadcastDb();
-      // Keep host's own in-memory arrays in sync with localDb
-      applyDbBroadcast(localDb);
+      // Sync host in-memory arrays from localDb without triggering a full UI re-render
+      if (localDb.products)     products     = localDb.products;
+      if (localDb.customers)    customers    = localDb.customers;
+      if (localDb.transactions) transactions = localDb.transactions;
+      if (localDb.recipes)      recipes      = localDb.recipes;
       setOnline(true);
       resolve(result);
       return;
@@ -1768,17 +1746,14 @@ function showLoginStep() {
 }
 
 function populateStores(stores) {
-  const sel = document.getElementById('store-select');
-  if (stores && stores.length) {
-    sel.innerHTML = stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  } else {
-    sel.innerHTML = SEED_DB.stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  }
+  const store = (stores && stores.length) ? stores[0] : SEED_DB.stores[0];
+  const el = document.getElementById('store-display-name');
+  if (el) el.textContent = store.name;
 }
 
 async function loadStores() {
   const stores = await api('stores');
-  populateStores(stores || SEED_DB.stores);
+  populateStores(stores && stores.length ? stores : SEED_DB.stores);
 }
 
 function numpadPress(d) { if (pinBuffer.length < 4) { pinBuffer += d; updatePinDots(); } }
@@ -1795,9 +1770,8 @@ async function numpadEnter() {
   let staff = await api(`staff/${pin}`);
   if (!staff || staff.error) staff = null;
   if (!staff) { document.getElementById('login-error').textContent = 'Invalid PIN'; return; }
-  const storeId = document.getElementById('store-select').value;
   const stores = await api('stores');
-  currentStore = (stores && stores.find(s => s.id === storeId)) || { id: storeId, name: document.getElementById('store-select').selectedOptions[0]?.text || 'Demo Store' };
+  currentStore = (stores && stores[0]) || SEED_DB.stores[0];
   currentStaff = staff;
   document.getElementById('tb-store').textContent = currentStore.name;
   document.getElementById('tb-staff').textContent = staff.name + ' · ' + staff.role;
