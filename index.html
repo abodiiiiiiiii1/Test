@@ -778,6 +778,80 @@ html, body {
   line-height: 1.6;
 }
 select option { background: #141826; }
+
+/* ─── LOCAL LOBBIES ─── */
+.lan-section {
+  margin-top: 20px;
+}
+.lan-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lan-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0 16px;
+}
+.lan-lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 48px;
+}
+.lan-lobby-item {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-glow);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lan-lobby-item:hover { border-color: var(--gold); background: rgba(184,150,62,0.06); }
+.lan-lobby-info { flex: 1; }
+.lan-lobby-host { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.lan-lobby-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.lan-join-btn {
+  padding: 7px 14px;
+  background: var(--crimson);
+  border: none;
+  color: #fff;
+  font-family: 'Cairo', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.lan-join-btn:hover { background: var(--crimson-light); }
+.lan-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 16px 0;
+}
+.lan-scanning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.lan-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: pulse 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-glow); }
@@ -843,6 +917,21 @@ select option { background: #141826; }
       <button class="btn-primary" id="join-room-btn" onclick="joinRoom()" disabled>
         انضم للعبة
       </button>
+
+      <!-- LOCAL LOBBIES -->
+      <hr class="lan-divider" />
+      <div class="lan-section">
+        <div class="lan-section-label">
+          <div class="lan-dot"></div>
+          <span>الغرف المحلية — الشبكة المجاورة</span>
+        </div>
+        <div class="lan-lobby-list" id="lan-lobby-list">
+          <div class="lan-scanning">
+            <span class="spin" style="display:inline-block;">⏳</span>
+            <span>جاري البحث عن الغرف القريبة...</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1065,6 +1154,104 @@ let playerGameState = null; // last full state from host
 
 let rolesEnabled = { doctor:true, detective:true, godfather:false, jester:false };
 
+/* ════════════════════════════════════════════════
+   LAN LOBBY DISCOVERY (BroadcastChannel)
+   Works across tabs/windows on the same device/browser.
+   Host advertises; joiners listen and display lobbies.
+════════════════════════════════════════════════ */
+let lanChannel = null;
+let lanLobbies = {};        // roomCode -> { hostName, playerCount, ts }
+let lanAdvertiseTimer = null;
+let lanScanTimer = null;
+
+function initLanChannel() {
+  if (!('BroadcastChannel' in window)) return;
+  lanChannel = new BroadcastChannel('mafia-lan');
+
+  lanChannel.onmessage = (e) => {
+    const d = e.data;
+    if (d.type === 'advertise') {
+      // Ignore our own room
+      if (d.code === roomCode) return;
+      lanLobbies[d.code] = { hostName: d.hostName, playerCount: d.playerCount, ts: Date.now() };
+      renderLanLobbies();
+    } else if (d.type === 'discover') {
+      // Someone is scanning — if we're the host, respond immediately
+      if (isHost && roomCode) {
+        lanChannel.postMessage({
+          type: 'advertise',
+          code: roomCode,
+          hostName: myName,
+          playerCount: hostPlayers.length,
+        });
+      }
+    } else if (d.type === 'close') {
+      delete lanLobbies[d.code];
+      renderLanLobbies();
+    }
+  };
+
+  // Send a discover probe so any already-open hosts respond right away
+  lanChannel.postMessage({ type: 'discover' });
+
+  // Periodically prune stale lobbies (older than 8s) and re-probe
+  lanScanTimer = setInterval(() => {
+    const now = Date.now();
+    let changed = false;
+    for (const code in lanLobbies) {
+      if (now - lanLobbies[code].ts > 8000) { delete lanLobbies[code]; changed = true; }
+    }
+    if (changed) renderLanLobbies();
+    if (lanChannel) lanChannel.postMessage({ type: 'discover' });
+  }, 4000);
+}
+
+function startLanAdvertise() {
+  if (!lanChannel) return;
+  const broadcast = () => {
+    if (!isHost || !roomCode) return;
+    lanChannel.postMessage({
+      type: 'advertise',
+      code: roomCode,
+      hostName: myName,
+      playerCount: hostPlayers.length,
+    });
+  };
+  broadcast();
+  lanAdvertiseTimer = setInterval(broadcast, 3000);
+}
+
+function stopLanAdvertise() {
+  if (lanAdvertiseTimer) { clearInterval(lanAdvertiseTimer); lanAdvertiseTimer = null; }
+  if (lanChannel && roomCode) lanChannel.postMessage({ type: 'close', code: roomCode });
+}
+
+function renderLanLobbies() {
+  const list = document.getElementById('lan-lobby-list');
+  if (!list) return;
+  const entries = Object.entries(lanLobbies);
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="lan-empty">لا توجد غرف مفتوحة قريبة حالياً</div>';
+    return;
+  }
+  list.innerHTML = entries.map(([code, info]) => `
+    <div class="lan-lobby-item" onclick="quickJoinLan('${code}')">
+      <div class="lan-lobby-info">
+        <div class="lan-lobby-host">🎯 ${info.hostName}</div>
+        <div class="lan-lobby-meta">${info.playerCount} لاعب متصل</div>
+      </div>
+      <button class="lan-join-btn" onclick="event.stopPropagation();quickJoinLan('${code}')">انضم ▶</button>
+    </div>
+  `).join('');
+}
+
+function quickJoinLan(code) {
+  // Pre-fill the code input and let joinRoom() handle the rest
+  const codeInput = document.getElementById('join-code-input');
+  if (codeInput) codeInput.value = code;
+  joinRoom();
+}
+
 // Host game state
 let state = {
   players: [],
@@ -1146,6 +1333,8 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('create-room-btn').disabled = false;
     document.getElementById('join-room-btn').disabled = false;
   });
+  initLanChannel();
+  renderLanLobbies();
 });
 
 /* ════════════════════════════════════════════════
@@ -1256,6 +1445,7 @@ function createRoom() {
     document.getElementById('display-room-code').textContent = getJoinLink();
     updateWaitingList();
     showScreen('waiting');
+    startLanAdvertise();
 
     roomPeer.on('connection', (conn) => {
       conn.on('open', () => {
@@ -1313,6 +1503,10 @@ function handleHostReceive(conn, data) {
       broadcastPlayerList();
       updateWaitingList();
       document.getElementById('start-game-btn').disabled = (hostPlayers.length < 3);
+      // Update LAN ad with new player count
+      if (isHost && lanChannel && roomCode) {
+        lanChannel.postMessage({ type:'advertise', code:roomCode, hostName:myName, playerCount:hostPlayers.length });
+      }
       break;
     }
     case 'night_action': {
@@ -1492,6 +1686,9 @@ function distributeRolesAndStart() {
       if (conn) send(conn, msg);
     }
   });
+
+  // Stop LAN advertising — room is now full/in-game
+  stopLanAdvertise();
 
   // Start game
   showScreen('game');
@@ -1911,6 +2108,7 @@ function renderLog() {
 function showNightModal(role) { /* handled by showNightModalHost */ }
 
 function restartGame() {
+  stopLanAdvertise();
   location.reload();
 }
 
