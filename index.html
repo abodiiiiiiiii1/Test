@@ -693,10 +693,12 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 }
 
 /* Hide mobile-only elements on desktop */
-.mobile-bottom-nav { display: none; }
-.cart-fab          { display: none; }
-.cart-overlay      { display: none; }
-.cart-handle       { display: none; }
+@media (min-width: 601px) {
+  .mobile-bottom-nav { display: none; }
+  .cart-fab          { display: none; }
+  .cart-overlay      { display: none; }
+  .cart-handle       { display: none; }
+}
 </style>
 </head>
 <body>
