@@ -1498,8 +1498,11 @@ function applyMutation(mut) {
           c.totalSpend = (c.totalSpend || 0) + (item.total || 0);
           c.visits     = (c.visits     || 0) + 1;
           c.loyaltyPoints = (c.loyaltyPoints || 0) + Math.floor((item.total || 0) / 10);
-          if (c.totalSpend > 50000)      c.tier = 'Obsidian';
-          else if (c.totalSpend > 20000) c.tier = 'Noir';
+          // Only auto-upgrade based on spend — never downgrade a tier that was
+          // set higher manually (e.g. a curated 'Platinum' customer).
+          const TIER_RANK = { Noir: 0, Obsidian: 1, Platinum: 2 };
+          const autoTier = c.totalSpend > 50000 ? 'Obsidian' : c.totalSpend > 20000 ? 'Noir' : null;
+          if (autoTier && (TIER_RANK[autoTier] ?? 0) > (TIER_RANK[c.tier] ?? 0)) c.tier = autoTier;
         }
       }
     }
@@ -2842,17 +2845,17 @@ async function completePayment() {
     timestamp: new Date().toISOString()
   };
 
-  // Update customer spend + loyalty points (1 point per £10 spent)
+  // Loyalty points, spend, and visit count are updated server-side as a side
+  // effect of posting the transaction (see applyMutation's 'transactions'
+  // handling below). We only compute an estimate here for the receipt screen —
+  // we do NOT mutate the customer record ourselves, since that used to apply
+  // the same increment twice (once here, once in applyMutation).
   let pointsEarned = 0;
+  let displayLoyaltyTotal = 0;
   if (selectedCustomer) {
     const c = customers.find(x => x.id === selectedCustomer.id);
-    if (c) {
-      c.totalSpend = (c.totalSpend || 0) + total;
-      c.visits = (c.visits || 0) + 1;
-      pointsEarned = Math.floor(total / 10);
-      c.loyaltyPoints = (c.loyaltyPoints || 0) + pointsEarned;
-      api(`customers/${c.id}`, 'PUT', c);
-    }
+    pointsEarned = Math.floor(total / 10);
+    displayLoyaltyTotal = (c?.loyaltyPoints || 0) + pointsEarned;
   }
 
   const result = await api('transactions', 'POST', txn);
@@ -2877,7 +2880,7 @@ async function completePayment() {
       <div style="color:var(--white-dim); font-size:12px; margin-bottom:6px;">${selectedPaymentMethod.toUpperCase()} · ${new Date().toLocaleTimeString('en-GB')}</div>
 
       ${selectedCustomer ? `<div style="color:var(--gold-dim); font-size:12px; margin-bottom:4px;">Customer: ${selectedCustomer.name}</div>` : ''}
-      ${pointsEarned > 0 ? `<div class="loyalty-pts-earned" style="margin-bottom:16px;">+${pointsEarned} loyalty points earned · Total: ${(selectedCustomer?.loyaltyPoints||0)} pts</div>` : '<div style="margin-bottom:16px;"></div>'}
+      ${pointsEarned > 0 ? `<div class="loyalty-pts-earned" style="margin-bottom:16px;">+${pointsEarned} loyalty points earned · Total: ${displayLoyaltyTotal} pts</div>` : '<div style="margin-bottom:16px;"></div>'}
 
       <button class="btn-action" onclick="finalizeSale()" style="width:100%; padding:14px;">New Sale</button>
     </div></div>`;
@@ -3153,9 +3156,9 @@ async function resetDatabase() {
   await api('reset', 'POST');
 
   // Refresh all views
-  renderProducts(); renderCart();
-  if (document.getElementById('view-inventory').classList.contains('active')) renderInventory();
-  if (document.getElementById('view-customers').classList.contains('active'))  renderCustomers();
+  renderCategories(); applyPosFilter(); renderCart(); updateLowStockBadge();
+  if (document.getElementById('view-inventory').classList.contains('active')) renderInventoryGrid();
+  if (document.getElementById('view-customers').classList.contains('active'))  renderCustomerTable();
   if (document.getElementById('view-analytics').classList.contains('active'))  renderAnalytics();
 
   btn.textContent = '⚠ Reset Entire Database'; btn.disabled = false;
