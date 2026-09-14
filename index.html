@@ -1506,6 +1506,8 @@ function api(path, method = 'GET', body = null) {
       }
       const result = applyMutation({ resource, method, id, body });
       broadcastDb();
+      // Keep host's own in-memory arrays in sync with localDb
+      applyDbBroadcast(localDb);
       setOnline(true);
       resolve(result);
       return;
@@ -2473,12 +2475,6 @@ async function completePayment() {
     timestamp: new Date().toISOString()
   };
 
-  // Deduct stock
-  cart.forEach(item => {
-    const p = products.find(x => x.id === item.productId);
-    if (p) { p.stock = Math.max(0, p.stock - item.qty); api(`products/${p.id}`, 'PUT', p); }
-  });
-
   // Update customer spend + loyalty points (1 point per £10 spent)
   let pointsEarned = 0;
   if (selectedCustomer) {
@@ -3208,19 +3204,23 @@ window.addEventListener('resize', () => {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
-  // Always start on setup screen; initialise mode UI
   document.getElementById('setup-step').style.display = '';
   document.getElementById('login-step').style.display = 'none';
 
-  // Default to host mode; if there's a saved host peer id, pre-select join
-  const savedHost = localStorage.getItem('gravity_p2p_host');
-  const savedOwnId = localStorage.getItem('gravity_p2p_id');
+  const savedHostId  = localStorage.getItem('gravity_p2p_host');
+  const savedOwnId   = localStorage.getItem('gravity_p2p_id');
 
-  if (savedHost && !savedOwnId) {
-    // This machine previously joined as a peer
+  // If this machine previously joined as a peer (has a host to connect to but no own host id)
+  if (savedHostId && !savedOwnId) {
     selectP2PMode('join');
+    // Auto-fill and auto-join
+    const input = document.getElementById('setup-url-input');
+    if (input) input.value = savedHostId;
+    joinHost();
   } else {
+    // Auto-start as host (will advance to login automatically on peer open)
     selectP2PMode('host');
+    startHost();
   }
 })();
 </script>
