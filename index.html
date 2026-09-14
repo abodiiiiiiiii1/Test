@@ -31,7 +31,7 @@
   --r-sm: 4px; --r-md: 8px; --r-lg: 12px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--black); color: var(--white); font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.5; height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+body { background: var(--black); color: var(--white); font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.5; height: 100vh; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
 
 /* LOGIN */
 #login-screen { position: fixed; inset: 0; z-index: 1000; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -55,7 +55,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 .login-error { color: var(--red); font-size: 12px; text-align: center; margin-top: 16px; min-height: 18px; }
 
 /* APP LAYOUT */
-#app { display: none; height: 100vh; flex-direction: column; }
+#app { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
 #app.visible { display: flex; }
 
 /* TOP BAR */
@@ -277,7 +277,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
 /* MODALS */
 .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(18,13,10,0.85); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
-.modal { background: var(--panel); border: 1px solid var(--border-hi); border-radius: var(--r-lg); padding: 32px; width: 480px; max-height: 85vh; overflow-y: auto; }
+.modal { background: var(--panel); border: 1px solid var(--border-hi); border-radius: var(--r-lg); padding: 32px; width: 480px; max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
 .modal.wide { width: 620px; }
 .modal-title { font-family: var(--font-serif); font-size: 24px; font-weight: 300; letter-spacing: 0.06em; color: var(--white); margin-bottom: 24px; }
 .form-field { margin-bottom: 16px; }
@@ -426,6 +426,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     border-left: none;
     border-top: 1px solid var(--border);
     max-height: 42vh;
+    max-height: 42dvh;
     display: flex;
   }
 
@@ -528,6 +529,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     left: 0; right: 0;
     width: 100%;
     max-height: 75vh;
+    max-height: 75dvh;
     border-left: none;
     border-top: 1px solid var(--border-hi);
     border-radius: var(--r-lg) var(--r-lg) 0 0;
@@ -575,7 +577,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     text-align: center;
   }
   /* hide FAB when cart is open */
-  .cart-panel.mobile-open ~ .cart-fab { display: none; }
+  .cart-fab.hidden { display: none; }
 
   /* Cart overlay backdrop */
   .cart-overlay {
@@ -669,6 +671,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
   .modal {
     width: 100%;
     max-height: 90vh;
+    max-height: 90dvh;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
     padding: 24px 16px 32px;
     margin: 0;
@@ -3566,12 +3569,14 @@ function isMobile() { return window.innerWidth <= 600; }
 function toggleMobileCart() {
   const panel   = document.getElementById('cart-panel');
   const overlay = document.getElementById('cart-overlay');
+  const fab     = document.getElementById('cart-fab');
   if (!panel) return;
   if (panel.classList.contains('mobile-open')) {
     closeMobileCart();
   } else {
     panel.classList.add('mobile-open');
     overlay.classList.add('visible');
+    if (fab) fab.classList.add('hidden');
     document.body.style.overflow = 'hidden';
   }
 }
@@ -3579,9 +3584,11 @@ function toggleMobileCart() {
 function closeMobileCart() {
   const panel   = document.getElementById('cart-panel');
   const overlay = document.getElementById('cart-overlay');
+  const fab     = document.getElementById('cart-fab');
   if (!panel) return;
   panel.classList.remove('mobile-open');
   overlay.classList.remove('visible');
+  if (fab) fab.classList.remove('hidden');
   document.body.style.overflow = '';
 }
 
