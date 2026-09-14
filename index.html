@@ -1026,8 +1026,6 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
               <option value="">All Methods</option>
               <option value="card">Card</option>
               <option value="cash">Cash</option>
-              <option value="contactless">Contactless</option>
-              <option value="amex">Amex</option>
             </select>
           </div>
           <table class="data-table">
@@ -1250,9 +1248,6 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div class="payment-methods">
       <div class="payment-method-btn selected" onclick="selectPaymentMethod('card', this)">💳 Card</div>
       <div class="payment-method-btn" onclick="selectPaymentMethod('cash', this)">💵 Cash</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('contactless', this)">📱 Tap</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('amex', this)">⬛ Amex</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('split', this)">✂️ Split</div>
     </div>
     <div class="payment-amount-display">
       <div class="payment-amount-label">Amount Due</div>
@@ -1261,11 +1256,6 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div id="cash-input-section" style="display:none; margin-bottom:16px;">
       <div class="form-field"><label class="form-label">Cash Tendered</label><input class="form-input" type="number" id="cash-tendered" placeholder="0.00" oninput="calcChange()"></div>
       <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:13px; color:var(--white-dim);"><span>Change Due</span><span id="change-due" style="color:var(--green); font-family:var(--font-serif); font-size:18px;">£0.00</span></div>
-    </div>
-    <div id="split-input-section" style="display:none; margin-bottom:16px;">
-      <div class="split-payment-row"><span style="font-size:12px; color:var(--white-dim); width:80px;">Card</span><input class="form-input" type="number" id="split-card" placeholder="0.00" oninput="calcSplitRemaining()"></div>
-      <div class="split-payment-row"><span style="font-size:12px; color:var(--white-dim); width:80px;">Cash</span><input class="form-input" type="number" id="split-cash" placeholder="0.00" oninput="calcSplitRemaining()"></div>
-      <div style="font-size:12px; color:var(--white-dim); margin-top:6px;">Remaining: <span id="split-remaining" style="color:var(--green);">£0.00</span></div>
     </div>
     <div class="modal-actions">
       <button class="btn-action" style="flex:1; padding:14px;" onclick="completePayment()">Complete Sale</button>
@@ -2799,7 +2789,6 @@ function openPayment() {
   document.querySelectorAll('.payment-method-btn')[0].classList.add('selected');
   selectedPaymentMethod = 'card';
   document.getElementById('cash-input-section').style.display = 'none';
-  document.getElementById('split-input-section').style.display = 'none';
 }
 
 function selectPaymentMethod(method, btn) {
@@ -2807,7 +2796,6 @@ function selectPaymentMethod(method, btn) {
   document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   document.getElementById('cash-input-section').style.display = method === 'cash' ? 'block' : 'none';
-  document.getElementById('split-input-section').style.display = method === 'split' ? 'block' : 'none';
 }
 
 function calcChange() {
@@ -2839,8 +2827,8 @@ async function completePayment() {
     if (tendered < total) { showNotification('Cash tendered is less than total', 'error'); return; }
   }
   if (selectedPaymentMethod === 'split') {
-    const card = parseFloat(document.getElementById('split-card').value) || 0;
-    const cash = parseFloat(document.getElementById('split-cash').value) || 0;
+    const card = parseFloat(document.getElementById('split-card')?.value) || 0;
+    const cash = parseFloat(document.getElementById('split-cash')?.value) || 0;
     if (card + cash < total - 0.01) { showNotification('Split amounts do not cover total', 'error'); return; }
   }
 
@@ -2904,9 +2892,6 @@ function finalizeSale() {
     <div class="payment-methods">
       <div class="payment-method-btn selected" onclick="selectPaymentMethod('card', this)">💳 Card</div>
       <div class="payment-method-btn" onclick="selectPaymentMethod('cash', this)">💵 Cash</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('contactless', this)">📱 Tap</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('amex', this)">⬛ Amex</div>
-      <div class="payment-method-btn" onclick="selectPaymentMethod('split', this)">✂️ Split</div>
     </div>
     <div class="payment-amount-display">
       <div class="payment-amount-label">Amount Due</div>
@@ -2915,11 +2900,6 @@ function finalizeSale() {
     <div id="cash-input-section" style="display:none; margin-bottom:16px;">
       <div class="form-field"><label class="form-label">Cash Tendered</label><input class="form-input" type="number" id="cash-tendered" placeholder="0.00" oninput="calcChange()"></div>
       <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:13px; color:var(--white-dim);"><span>Change Due</span><span id="change-due" style="color:var(--green); font-family:var(--font-serif); font-size:18px;">£0.00</span></div>
-    </div>
-    <div id="split-input-section" style="display:none; margin-bottom:16px;">
-      <div class="split-payment-row"><span style="font-size:12px; color:var(--white-dim); width:80px;">Card</span><input class="form-input" type="number" id="split-card" placeholder="0.00" oninput="calcSplitRemaining()"></div>
-      <div class="split-payment-row"><span style="font-size:12px; color:var(--white-dim); width:80px;">Cash</span><input class="form-input" type="number" id="split-cash" placeholder="0.00" oninput="calcSplitRemaining()"></div>
-      <div style="font-size:12px; color:var(--white-dim); margin-top:6px;">Remaining: <span id="split-remaining" style="color:var(--green);">£0.00</span></div>
     </div>
     <div class="modal-actions">
       <button class="btn-action" style="flex:1; padding:14px;" onclick="completePayment()">Complete Sale</button>
@@ -2972,17 +2952,28 @@ function openTxnDetail(id) {
   openModal('modal-txn-detail');
 }
 
-function refundTransaction() {
+async function refundTransaction() {
   const t = currentTxnDetail; if (!t) return;
   if (!confirm(`Refund ${fmt(t.total)}?`)) return;
-  // Restore stock
+  // Restore stock — update all products in memory first, then persist each
   (t.items || []).forEach(item => {
     const p = products.find(x => x.id === item.productId);
-    if (p) { p.stock += item.qty; api(`products/${p.id}`, 'PUT', p); }
+    if (p) p.stock = Math.max(0, p.stock + item.qty);
   });
+  // Now persist each updated product
+  await Promise.all(
+    (t.items || []).map(item => {
+      const p = products.find(x => x.id === item.productId);
+      return p ? api(`products/${p.id}`, 'PUT', p) : Promise.resolve();
+    })
+  );
   transactions = transactions.filter(x => x.id !== t.id);
-  api(`transactions/${t.id}`, 'DELETE');
-  closeModal('modal-txn-detail'); renderTransactionTable(); renderInventoryGrid();
+  await api(`transactions/${t.id}`, 'DELETE');
+  closeModal('modal-txn-detail');
+  renderTransactionTable();
+  applyPosFilter();
+  renderInventoryGrid();
+  updateLowStockBadge();
   showNotification(`Refund processed — ${fmt(t.total)} returned`);
 }
 
