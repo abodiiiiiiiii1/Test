@@ -1051,7 +1051,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         <div class="view-header"><span class="view-title">All Transactions</span></div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Reference</th><th>Date & Time</th><th>Store</th><th>Customer</th><th>Items</th><th>Payment</th><th>Total</th></tr></thead>
+            <thead><tr><th>Reference</th><th>Date & Time</th><th>Store</th><th>Staff</th><th>Customer</th><th>Items</th><th>Payment</th><th>Total</th></tr></thead>
             <tbody id="txn-tbody"></tbody>
           </table>
         </div>
@@ -2972,8 +2972,13 @@ async function completePayment() {
 
   const result = await api('transactions', 'POST', txn);
   const ref = result?.id || `TXN-${Date.now()}`;
+  // NOTE: on the host, api() already syncs `transactions = localDb.transactions`
+  // as part of applying the mutation — that array already contains this new
+  // record. Pushing it again here duplicated every sale in the table. Guard
+  // against re-adding a record that's already present (host case) while
+  // still adding it for the peer's optimistic local copy.
   if (!result) transactions.push({ ...txn, id: ref });
-  else transactions.push(result);
+  else if (!transactions.some(t => t.id === result.id)) transactions.push(result);
 
   // Stock was deducted in applyMutation (host) or will sync via broadcast (peer)
   // Force immediate UI update so grids reflect new stock without a refresh
@@ -3031,12 +3036,13 @@ async function loadTransactions() {
 
 function renderTransactionTable() {
   const tbody = document.getElementById('txn-tbody');
-  if (!transactions.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--white-dim); font-family:var(--font-serif); font-style:italic;">No transactions yet</td></tr>`; return; }
+  if (!transactions.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--white-dim); font-family:var(--font-serif); font-style:italic;">No transactions yet</td></tr>`; return; }
   tbody.innerHTML = [...transactions].reverse().map(t => `
     <tr onclick="openTxnDetail('${t.id}')">
       <td style="color:var(--gold); font-size:11px;">${t.id}</td>
       <td style="color:var(--white-dim)">${new Date(t.timestamp).toLocaleString('en-GB')}</td>
       <td style="color:var(--white-dim)">${t.storeName || '—'}</td>
+      <td style="color:var(--gold-dim)">${t.staffName || '—'}</td>
       <td>${t.customerName || '<span style="color:var(--white-dim)">Walk-in</span>'}</td>
       <td style="color:var(--white-dim)">${t.items?.length || 0}</td>
       <td style="text-transform:uppercase; font-size:10px; color:var(--white-dim)">${t.paymentMethod || '—'}</td>
