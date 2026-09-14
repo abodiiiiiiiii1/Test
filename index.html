@@ -458,25 +458,17 @@ html, body {
 
     <!-- HOST TAB -->
     <div class="tab-panel active" id="tab-host">
-      <div class="status-bar" id="host-status-bar">
-        <div class="status-dot" id="host-status-dot"></div>
-        <span id="host-status-text">جاري الاتصال بخادم الإشارات...</span>
-      </div>
       <div class="form-row">
         <label>اسمك (المضيف)</label>
         <input type="text" id="host-name-input" placeholder="اسمك" maxlength="20" />
       </div>
-      <button class="btn-primary" id="create-room-btn" onclick="createRoom()" disabled>
+      <button class="btn-primary" id="create-room-btn" onclick="createRoom()">
         إنشاء غرفة
       </button>
     </div>
 
     <!-- JOIN TAB -->
     <div class="tab-panel" id="tab-join">
-      <div class="status-bar" id="join-status-bar">
-        <div class="status-dot" id="join-status-dot"></div>
-        <span id="join-status-text">جاري الاتصال...</span>
-      </div>
       <div class="form-row">
         <label>اسمك</label>
         <input type="text" id="join-name-input" placeholder="اسمك" maxlength="20" />
@@ -487,7 +479,7 @@ html, body {
                style="text-transform:uppercase;letter-spacing:4px;font-size:18px;font-weight:700;direction:ltr;text-align:center;"
                oninput="this.value=this.value.toUpperCase()" />
       </div>
-      <button class="btn-primary" id="join-room-btn" onclick="joinRoom()" disabled>
+      <button class="btn-primary" id="join-room-btn" onclick="joinRoom()">
         انضم للعبة
       </button>
 
@@ -526,7 +518,7 @@ html, body {
     <h2 style="font-size:15px;color:var(--gold);margin-bottom:12px;font-weight:700;">اللاعبون المتصلون (<span id="player-count-waiting">0</span>)</h2>
     <div class="players-waiting-list" id="players-waiting-list"></div>
 
-    <button class="btn-primary" id="start-game-btn" onclick="proceedToSetup()" disabled>
+    <button class="btn-primary" id="start-game-btn" onclick="proceedToSetup()">
       بدء الإعداد ▶
     </button>
   </div>
@@ -579,27 +571,15 @@ html, body {
 <section id="screen-win" class="screen"></section>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════════
-
-let currentMode = null; // 'host' or 'join'
+let currentMode = null;
 let currentPlayerName = '';
-let localRooms = new Map(); // Map to store discovered LAN rooms
+let localRooms = new Map();
 let discoveryInterval = null;
-
-// ═══════════════════════════════════════════════════════════════
-// LAN DISCOVERY - Simulate rooms on the local network
-// ═══════════════════════════════════════════════════════════════
+let currentRoomCode = null;
 
 function startLANDiscovery() {
-  // Clear existing interval
   if (discoveryInterval) clearInterval(discoveryInterval);
-  
-  // Scan every 3 seconds
   discoveryInterval = setInterval(scanForLocalRooms, 3000);
-  
-  // Initial scan
   scanForLocalRooms();
 }
 
@@ -611,20 +591,13 @@ function stopLANDiscovery() {
 }
 
 function scanForLocalRooms() {
-  const lanList = document.getElementById('lan-lobby-list');
-  
-  // Simulate finding rooms via local network
-  // In a real app, this would use WebRTC, mDNS, or UDP broadcasts
-  // For now, we'll check localStorage for rooms created by other tabs/devices
-  
   try {
     const storedRooms = localStorage.getItem('_mafia_local_rooms');
     if (storedRooms) {
       const rooms = JSON.parse(storedRooms);
-      
       localRooms.clear();
       rooms.forEach(room => {
-        if (!room.isJoined && Date.now() - room.timestamp < 60000) { // 60 sec expiry
+        if (!room.isJoined && Date.now() - room.timestamp < 60000) {
           localRooms.set(room.roomCode, room);
         }
       });
@@ -632,8 +605,6 @@ function scanForLocalRooms() {
   } catch (e) {
     console.log('LocalStorage error:', e);
   }
-  
-  // Update UI
   updateLANLobbyList();
 }
 
@@ -673,10 +644,6 @@ function joinLocalRoom(roomCode, hostName) {
   joinRoom();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// HOST - Create and broadcast room
-// ═══════════════════════════════════════════════════════════════
-
 function createRoom() {
   const hostName = document.getElementById('host-name-input').value.trim();
   if (!hostName) {
@@ -686,11 +653,9 @@ function createRoom() {
   
   currentMode = 'host';
   currentPlayerName = hostName;
-  
-  // Generate room code
   const roomCode = generateRoomCode();
+  currentRoomCode = roomCode;
   
-  // Broadcast room to local network (via localStorage)
   const room = {
     roomCode,
     hostName,
@@ -702,27 +667,25 @@ function createRoom() {
   try {
     const storedRooms = localStorage.getItem('_mafia_local_rooms');
     let rooms = storedRooms ? JSON.parse(storedRooms) : [];
-    rooms = rooms.filter(r => Date.now() - r.timestamp < 60000); // Keep only recent
+    rooms = rooms.filter(r => Date.now() - r.timestamp < 60000);
     rooms.push(room);
     localStorage.setItem('_mafia_local_rooms', JSON.stringify(rooms));
   } catch (e) {
     console.log('Could not broadcast room:', e);
   }
   
-  // Switch to waiting screen
   showScreen('screen-waiting');
   document.getElementById('display-room-code').textContent = roomCode;
   document.getElementById('player-count-waiting').textContent = '1';
   
-  // Update room info periodically
+  // Update room periodically
   setInterval(() => {
     try {
       const storedRooms = localStorage.getItem('_mafia_local_rooms');
       let rooms = storedRooms ? JSON.parse(storedRooms) : [];
-      const idx = rooms.findIndex(r => r.roomCode === roomCode);
+      const idx = rooms.findIndex(r => r.roomCode === currentRoomCode);
       if (idx >= 0) {
         rooms[idx].timestamp = Date.now();
-        rooms[idx].playerCount = 1 + (Math.floor(Math.random() * 4)); // Simulate players
         localStorage.setItem('_mafia_local_rooms', JSON.stringify(rooms));
       }
     } catch (e) {}
@@ -732,10 +695,6 @@ function createRoom() {
 function generateRoomCode() {
   return Math.random().toString(36).substr(2, 6).toUpperCase();
 }
-
-// ═══════════════════════════════════════════════════════════════
-// JOIN - Connect to room
-// ═══════════════════════════════════════════════════════════════
 
 function joinRoom() {
   const playerName = document.getElementById('join-name-input').value.trim();
@@ -754,11 +713,9 @@ function joinRoom() {
   currentMode = 'join';
   currentPlayerName = playerName;
   
-  // Check if room exists locally
   if (localRooms.has(roomCode)) {
     const room = localRooms.get(roomCode);
     
-    // Mark as joined
     try {
       const storedRooms = localStorage.getItem('_mafia_local_rooms');
       let rooms = storedRooms ? JSON.parse(storedRooms) : [];
@@ -776,20 +733,13 @@ function joinRoom() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════════
-
 function switchTab(tab) {
-  // Hide all panels
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   
-  // Show selected
   document.getElementById(`tab-${tab}`).classList.add('active');
   event.target.classList.add('active');
   
-  // Start/stop discovery based on tab
   if (tab === 'join') {
     startLANDiscovery();
   } else {
@@ -813,7 +763,6 @@ function toggleRole(role) {
 
 function distributeRolesAndStart() {
   alert('توزيع الأدوار وبدء اللعبة!');
-  // Implement game logic here
 }
 
 function copyJoinLink() {
@@ -823,12 +772,7 @@ function copyJoinLink() {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Test: Add some mock rooms for demo
   setTimeout(() => {
     try {
       const mockRooms = [
