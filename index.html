@@ -1094,17 +1094,26 @@ function switchTab(t) {
 /* ════════════════════════════════════════════════
    PEERJS INITIALIZATION
 ════════════════════════════════════════════════ */
-function initPeer(onReady) {
-  // Use PeerJS public cloud — no server needed
-  peer = new Peer(undefined, {
-    host: 'peerjs.com', port: 443, path: '/', secure: true,
+function makePeerConfig() {
+  return {
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-      ]
-    }
-  });
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+      ],
+      iceTransportPolicy: 'all',
+    },
+    debug: 0,
+  };
+}
+
+function initPeer(onReady) {
+  // Use PeerJS default cloud (0.peerjs.com) — more reliable than peerjs.com
+  peer = new Peer(undefined, makePeerConfig());
 
   peer.on('open', (id) => {
     myPeerId = id;
@@ -1135,37 +1144,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('join-room-btn').disabled = false;
   });
 });
-
-/* ════════════════════════════════════════════════
-   HOST: CREATE ROOM
-════════════════════════════════════════════════ */
-function createRoom() {
-  const name = document.getElementById('host-name-input').value.trim() || 'المضيف';
-  myName = name;
-  isHost = true;
-
-  // Room code: last 6 chars of peerId (alphanumeric) uppercased
-  roomCode = myPeerId.replace(/[^a-z0-9]/gi,'').slice(-6).toUpperCase();
-  if (roomCode.length < 4) roomCode = myPeerId.slice(0,6).toUpperCase();
-
-  // Add host as first player
-  hostPlayers = [{ peerId: myPeerId, name: myName, connected: true, isHost: true }];
-
-  document.getElementById('display-room-code').textContent = roomCode;
-  updateWaitingList();
-  showScreen('waiting');
-
-  // Listen for incoming connections
-  peer.on('connection', (conn) => {
-    conn.on('open', () => {
-      conn.on('data', (data) => handleHostReceive(conn, data));
-      conn.on('close', () => handlePlayerDisconnect(conn.peer));
-      // Send welcome + current player list
-      const existingNames = hostPlayers.map(p => p.name);
-      send(conn, { type:'welcome', players: existingNames });
-    });
-  });
-}
 
 /* ════════════════════════════════════════════════
    PLAYER: JOIN ROOM
@@ -1222,15 +1200,7 @@ function createRoom() {
   roomCode = Math.random().toString(36).slice(2,8).toUpperCase();
 
   // Create a named peer that players will connect to
-  const roomPeer = new Peer('mafia-room-' + roomCode, {
-    host: 'peerjs.com', port: 443, path: '/', secure: true,
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-      ]
-    }
-  });
+  const roomPeer = new Peer('mafia-room-' + roomCode, makePeerConfig());
 
   showConnecting('جاري إنشاء الغرفة...');
 
