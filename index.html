@@ -826,6 +826,10 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
         Sales
       </button>
+      <button class="nav-btn" onclick="showView('staff')" id="nav-staff" title="Staff">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Staff
+      </button>
       <div class="nav-spacer"></div>
     </nav>
 
@@ -1036,6 +1040,29 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
         </div>
       </div>
     </div>
+    <!-- ═══ STAFF VIEW ═══ -->
+    <div class="view" id="view-staff">
+      <div class="view-inner">
+        <div class="view-header">
+          <span class="view-title">Staff</span>
+          <button class="btn-action" onclick="openAddStaff()" style="margin-left:auto;">+ Add Staff</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role / Privilege</th>
+                <th>PIN</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="staff-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1130,6 +1157,39 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div class="modal-actions">
       <button class="btn-action" onclick="saveRecipe()">Save Recipe</button>
       <button class="btn-action ghost" onclick="closeModal('modal-recipe')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Staff Modal -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal">
+    <div class="modal-title" id="staff-modal-title">Add Staff Member</div>
+    <input type="hidden" id="sf-id">
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">Full Name</label><input class="form-input" type="text" id="sf-name" placeholder="e.g. Jane Smith"></div>
+      <div class="form-field">
+        <label class="form-label">Role / Privilege</label>
+        <select class="form-select" id="sf-role">
+          <option value="Manager">Manager — full access</option>
+          <option value="Associate">Associate — sales &amp; customers</option>
+          <option value="Cashier">Cashier — sales only</option>
+          <option value="Viewer">Viewer — read-only</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">4-Digit PIN</label>
+      <input class="form-input" type="password" id="sf-pin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Confirm PIN</label>
+      <input class="form-input" type="password" id="sf-pin2" placeholder="Repeat PIN" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+    </div>
+    <div id="staff-modal-error" style="color:var(--red); font-size:12px; min-height:18px; margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn-action" onclick="saveStaff()">Save</button>
+      <button class="btn-action ghost" onclick="closeModal('modal-staff')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1564,6 +1624,7 @@ function applyDbBroadcast(db) {
   // Refresh whichever view is active
   renderCategories(); renderProductGrid(products); renderInventoryGrid();
   renderCustomerTable(); renderTransactionTable(); updateLowStockBadge();
+  renderStaffTable(db.staff || []);
 }
 
 function setOnline(online) {
@@ -2013,6 +2074,160 @@ function applyStockAdjust() {
   renderInventoryGrid(); renderProductGrid(products); updateLowStockBadge();
   closeModal('modal-stock');
   showNotification(`Stock updated — ${p.name}: ${p.stock} units`);
+}
+
+// ─── Staff ────────────────────────────────────────────────────────────────────
+const ROLE_DESCRIPTIONS = {
+  Manager:   'Full access — products, staff, reports, sales',
+  Associate: 'Sales, customers & inventory',
+  Cashier:   'Sales only',
+  Viewer:    'Read-only'
+};
+
+const ROLE_COLORS = {
+  Manager:   'var(--gold)',
+  Associate: 'var(--green)',
+  Cashier:   'var(--blue)',
+  Viewer:    'var(--white-dim)'
+};
+
+async function loadStaff() {
+  const data = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
+  renderStaffTable(data);
+}
+
+function renderStaffTable(list) {
+  list = list || (p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []));
+  const tbody = document.getElementById('staff-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--white-dim); font-family:var(--font-serif); font-style:italic;">No staff members yet — add one to get started</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(s => {
+    const roleColor = ROLE_COLORS[s.role] || 'var(--white-dim)';
+    const roleDesc  = ROLE_DESCRIPTIONS[s.role] || s.role;
+    const pinMasked = s.pin ? '••••' : '—';
+    const isMe = currentStaff && s.id === currentStaff.id;
+    return `<tr>
+      <td>
+        <span style="font-size:13px; color:var(--white);">${s.name}</span>
+        ${isMe ? `<span style="font-size:10px; background:var(--gold-glow); color:var(--gold); border:1px solid var(--border-hi); border-radius:100px; padding:2px 8px; margin-left:8px; letter-spacing:0.06em;">You</span>` : ''}
+      </td>
+      <td>
+        <span style="color:${roleColor}; font-size:12px; font-weight:500;">${s.role}</span>
+        <span style="display:block; font-size:10px; color:var(--white-dim); margin-top:1px;">${roleDesc}</span>
+      </td>
+      <td style="font-family:var(--font-serif); font-size:16px; letter-spacing:0.1em; color:var(--white-dim);">${pinMasked}</td>
+      <td style="white-space:nowrap;">
+        <button class="inv-btn" onclick="openEditStaff('${s.id}')" style="margin-right:6px;">Edit</button>
+        ${isMe ? '' : `<button class="inv-btn" onclick="deleteStaff('${s.id}')" style="color:var(--red);">Remove</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+let editingStaffId = null;
+
+function openAddStaff() {
+  editingStaffId = null;
+  document.getElementById('staff-modal-title').textContent = 'Add Staff Member';
+  document.getElementById('sf-id').value = '';
+  document.getElementById('sf-name').value = '';
+  document.getElementById('sf-role').value = 'Associate';
+  document.getElementById('sf-pin').value = '';
+  document.getElementById('sf-pin2').value = '';
+  document.getElementById('staff-modal-error').textContent = '';
+  openModal('modal-staff');
+}
+
+function openEditStaff(id) {
+  const list = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
+  const s = list.find(x => x.id === id);
+  if (!s) return;
+  editingStaffId = id;
+  document.getElementById('staff-modal-title').textContent = 'Edit Staff Member';
+  document.getElementById('sf-id').value = s.id;
+  document.getElementById('sf-name').value = s.name || '';
+  document.getElementById('sf-role').value = s.role || 'Associate';
+  document.getElementById('sf-pin').value = '';
+  document.getElementById('sf-pin2').value = '';
+  document.getElementById('staff-modal-error').textContent = '';
+  openModal('modal-staff');
+}
+
+async function saveStaff() {
+  const errEl = document.getElementById('staff-modal-error');
+  errEl.textContent = '';
+
+  const name = document.getElementById('sf-name').value.trim();
+  const role = document.getElementById('sf-role').value;
+  const pin  = document.getElementById('sf-pin').value.trim();
+  const pin2 = document.getElementById('sf-pin2').value.trim();
+
+  if (!name) { errEl.textContent = 'Please enter a name.'; return; }
+  if (!editingStaffId && !pin) { errEl.textContent = 'Please enter a PIN.'; return; }
+  if (pin && !/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; return; }
+  if (pin && pin !== pin2) { errEl.textContent = 'PINs do not match.'; return; }
+
+  // Check PIN uniqueness (exclude self)
+  if (pin) {
+    const list = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
+    const conflict = list.find(s => s.pin === pin && s.id !== editingStaffId);
+    if (conflict) { errEl.textContent = `PIN already in use by ${conflict.name}.`; return; }
+  }
+
+  const body = { name, role, storeId: 'store-001' };
+  if (pin) body.pin = pin;
+
+  if (editingStaffId) {
+    // PUT — direct edit on host db for staff (api shim handles it)
+    await p2pWriteStaff('PUT', editingStaffId, body);
+    showNotification(`${name} updated`);
+  } else {
+    await p2pWriteStaff('POST', null, body);
+    showNotification(`${name} added`);
+  }
+
+  closeModal('modal-staff');
+  loadStaff();
+}
+
+async function deleteStaff(id) {
+  const list = p2pMode === 'host' ? (localDb.staff || []) : (localStaff || []);
+  const s = list.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`Remove ${s.name} from staff?`)) return;
+  await p2pWriteStaff('DELETE', id, null);
+  showNotification(`${s.name} removed`, 'error');
+  loadStaff();
+}
+
+// Staff mutations go directly to localDb on host, or via p2p on peer
+function p2pWriteStaff(method, id, body) {
+  return new Promise(resolve => {
+    if (p2pMode === 'host') {
+      const col = localDb.staff || [];
+      if (method === 'POST') {
+        const newItem = { id: `staff-${Date.now()}`, ...body };
+        col.push(newItem);
+        localDb.staff = col;
+      } else if (method === 'PUT') {
+        const idx = col.findIndex(x => x.id === id);
+        if (idx !== -1) col[idx] = { ...col[idx], ...body };
+      } else if (method === 'DELETE') {
+        localDb.staff = col.filter(x => x.id !== id);
+      }
+      dbSave(localDb);
+      broadcastDb();
+      resolve({ ok: true });
+    } else if (p2pMode === 'peer' && p2pConn && p2pConn.open !== false) {
+      p2pConn.send({ type: 'mutation', resource: 'staff', method, id, body });
+      resolve({ ok: true });
+    } else {
+      resolve(null);
+    }
+  });
 }
 
 // ─── Recipes ─────────────────────────────────────────────────────────────────
@@ -2691,6 +2906,7 @@ function showView(name) {
   if (name === 'inventory') renderInventoryGrid();
   if (name === 'recipes') { loadRecipes(); }
   if (name === 'analytics') renderAnalytics();
+  if (name === 'staff') loadStaff();
 }
 
 // ─── P2P Network Config (in-app modal) ───────────────────────────────────────
