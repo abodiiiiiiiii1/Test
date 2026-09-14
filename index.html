@@ -830,13 +830,18 @@ select option { background: #141826; }
         <div class="status-dot" id="join-status-dot"></div>
         <span id="join-status-text">جاري الاتصال...</span>
       </div>
-      <div class="info-strip">سيتم الانضمام تلقائياً للغرفة المفتوحة على نفس الشبكة</div>
       <div class="form-row">
         <label>اسمك</label>
         <input type="text" id="join-name-input" placeholder="اسمك" maxlength="20" />
       </div>
+      <div class="form-row">
+        <label>رمز الغرفة <span style="color:var(--text-dim);font-weight:400;">(من المضيف)</span></label>
+        <input type="text" id="join-code-input" placeholder="مثال: AB12CD" maxlength="6"
+               style="text-transform:uppercase;letter-spacing:4px;font-size:18px;font-weight:700;direction:ltr;text-align:center;"
+               oninput="this.value=this.value.toUpperCase()" />
+      </div>
       <button class="btn-primary" id="join-room-btn" onclick="joinRoom()" disabled>
-        انضم للعبة تلقائياً
+        انضم للعبة
       </button>
     </div>
   </div>
@@ -1176,10 +1181,16 @@ function joinRoom() {
   myName = name;
   isHost = false;
 
-  // Room ID comes from URL hash set by host
-  const roomId = getRoomIdFromHash();
+  // Room ID comes from URL hash OR the manual code input field
+  let roomId = getRoomIdFromHash();
   if (!roomId) {
-    alert('لا توجد غرفة مفتوحة. اطلب من المضيف مشاركة الرابط.');
+    const codeInput = document.getElementById('join-code-input').value.trim().toUpperCase();
+    if (codeInput.length >= 4) {
+      roomId = 'mafia-' + codeInput;
+    }
+  }
+  if (!roomId) {
+    alert('أدخل رمز الغرفة الذي شاركه معك المضيف.');
     return;
   }
 
@@ -1266,9 +1277,13 @@ function createRoom() {
 
 /* Auto-join if URL hash contains a room ID */
 window.addEventListener('DOMContentLoaded', () => {
-  if (getRoomIdFromHash()) {
-    // Pre-select the join tab for users arriving via a shared link
+  const roomId = getRoomIdFromHash();
+  if (roomId) {
+    // Pre-select the join tab and pre-fill the code for users arriving via a shared link
     switchTab('join');
+    const code = roomId.replace('mafia-', '');
+    const codeInput = document.getElementById('join-code-input');
+    if (codeInput) codeInput.value = code;
   }
 });
 
