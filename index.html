@@ -1349,6 +1349,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-sa
     <div class="modal-actions">
       <button class="btn-action" onclick="saveCustomer()">Save Profile</button>
       <button class="btn-action ghost" onclick="closeModal('modal-new-customer')">Cancel</button>
+      <button class="btn-action danger" id="btn-delete-customer" style="display:none;" onclick="deleteCustomer()">Delete</button>
     </div>
   </div>
 </div>
@@ -2743,6 +2744,7 @@ function openNewCustomer() {
   document.getElementById('nc-id').value = '';
   document.getElementById('nc-tier').value = 'Noir';
   document.getElementById('nc-birthday').value = '';
+  document.getElementById('btn-delete-customer').style.display = 'none';
   closeModal('modal-customer-search');
   openModal('modal-new-customer');
 }
@@ -2758,6 +2760,7 @@ function openEditCustomer(id) {
   document.getElementById('nc-tier').value = c.tier || 'Noir';
   document.getElementById('nc-birthday').value = c.birthday || '';
   document.getElementById('nc-notes').value = c.notes || '';
+  document.getElementById('btn-delete-customer').style.display = '';
   openModal('modal-new-customer');
 }
 
@@ -2782,6 +2785,22 @@ async function saveCustomer() {
     showNotification(`${name} added`);
   }
   closeModal('modal-new-customer'); renderCustomerTable();
+}
+
+async function deleteCustomer() {
+  if (!editingCustomerId) return;
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  if (!confirm(`Delete "${c.name}"? Their purchase history will be kept, but they'll no longer be linked to a profile. This cannot be undone.`)) return;
+  await api(`customers/${editingCustomerId}`, 'DELETE');
+  customers = customers.filter(x => x.id !== editingCustomerId);
+  if (selectedCustomer && selectedCustomer.id === editingCustomerId) {
+    selectedCustomer = null;
+    renderCustomerBar();
+  }
+  closeModal('modal-new-customer');
+  renderCustomerTable();
+  showNotification(`${c.name} removed`, 'error');
 }
 
 // ─── Payment ─────────────────────────────────────────────────────────────────
